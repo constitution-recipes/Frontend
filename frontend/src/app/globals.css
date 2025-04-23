@@ -1,0 +1,148 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* 메인 컬러 - 자연친화적인 그린 계열 */
+  --primary: 162 47% 50%;     /* 민트 그린 */
+  --primary-foreground: 0 0% 100%;
+  
+  /* 보조 컬러 - 차분한 블루 계열 */
+  --secondary: 199 69% 84%;   /* 소프트 블루 */
+  --secondary-foreground: 200 50% 20%;
+  
+  /* 강조 컬러 - 따뜻한 브라운 계열 */
+  --accent: 35 91% 75%;      /* 웜 베이지 */
+  --accent-foreground: 35 40% 25%;
+  
+  /* 경고/에러 컬러 */
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  
+  /* 배경 및 전경 컬러 */
+  --background: 0 0% 100%;    /* 순수 화이트 */
+  --foreground: 200 15% 25%;  /* 딥 블루그레이 */
+  
+  /* 카드 컬러 */
+  --card: 0 0% 100%;
+  --card-foreground: 200 15% 25%;
+  
+  /* 팝오버 컬러 */
+  --popover: 0 0% 100%;
+  --popover-foreground: 200 15% 25%;
+  
+  /* 뮤트 컬러 */
+  --muted: 180 15% 97%;      /* 소프트 그레이 */
+  --muted-foreground: 200 15% 45%;
+  
+  /* 보더 및 인풋 컬러 */
+  --border: 180 15% 90%;
+  --input: 180 15% 90%;
+  
+  /* 링 컬러 */
+  --ring: 162 47% 50%;
+  
+  /* 라운드 코너 */
+  --radius: 0.75rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+  
+  body {
+    @apply bg-background text-foreground antialiased min-h-screen;
+  }
+
+  /* 헤딩 스타일 */
+  h1 {
+    @apply text-4xl font-bold tracking-tight;
+  }
+  
+  h2 {
+    @apply text-3xl font-semibold tracking-tight;
+  }
+  
+  h3 {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+
+  /* 링크 스타일 */
+  a {
+    @apply text-primary hover:text-primary/80 transition-colors;
+  }
+}
+
+/* 커스텀 애니메이션 */
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out;
+  }
+  
+  .animate-slide-down {
+    animation: slideDown 0.5s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slideUp {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slideDown {
+    from {
+      transform: translateY(-20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+}
+
+/* 커스텀 유틸리티 클래스 */
+@layer utilities {
+  .bg-gradient-primary {
+    @apply bg-gradient-to-b from-secondary/30 to-background;
+  }
+  
+  .bg-gradient-card {
+    @apply bg-gradient-to-br from-card to-background;
+  }
+  
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80;
+  }
+  
+  .shadow-card {
+    @apply shadow-lg shadow-primary/5;
+  }
+} 

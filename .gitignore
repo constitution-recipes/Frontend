@@ -1,0 +1,6 @@
+# Ignore ansik_app_mvp directory
+ansik_app_mvp/ 
+backend/
+node_modules/
+frontend/.next
+frontend/node_modules

@@ -65,11 +65,10 @@
 
 | 구분       | 기술            | 역할 및 이유                                          |
 |----------|---------------|-----------------------------------------------------|
-| Backend  | FastAPI       | 비동기 처리, 경량 REST API, Python 기반 ML 연동 용이            |
-|          | Spring (Boot) | 사용자 인증·권한 관리, 안정적인 엔터프라이즈 로직 처리           |
+| Backend  | FastAPI       | - 비동기 처리, 경량 REST API 서버 \n - Python 기반 ML/AI 연동 용이 \n - 사용자 인증·권한 관리 \n - JWT 기반 인증 처리 |
 |          | RabbitMQ      | Task 큐잉(RAG 검색, LLM 호출, 비동기 배치 작업)               |
 |          | Celery        | RabbitMQ와 연동한 워커, 스케줄링, 재시도 로직 지원               |
-| Frontend | React         | 컴포넌트 기반 UI, 상태 관리(Redux/Recoil), 풍부한 생태계            |
+| Frontend | Next.js       | - React 기반 SSR/CSR 하이브리드 \n - 라우팅 및 API 통합 \n - 서버 컴포넌트 지원 |
 | Infra    | Docker        | 컨테이너화, CI/CD 파이프라인 통합                 |
 
 # 5. DB 선택 & 근거
@@ -92,11 +91,10 @@
 ```mermaid
 flowchart LR
   subgraph Front
-    A[React UI] -->|REST/WS| B[FastAPI]
+    A[Next.js UI] -->|REST/WS| B[FastAPI]
   end
   subgraph Auth
-    B -->|인증 요청| C[Spring OAuth2]
-    C -->|Issue JWT| A
+    B -->|JWT 인증| A
   end
   subgraph Queue
     B -->|Enqueue Task| D[RabbitMQ]
