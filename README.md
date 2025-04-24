@@ -1,4 +1,8 @@
-# 안식: 맞춤형 건강 솔루션
+# ChiDiet (체다이어트)
+
+당신만을 위한 맞춤형 건강 식단 플랫폼
+
+> Chi(기) + Diet의 합성어로, 한의학의 체질 이론을 현대적으로 재해석하여 개인 맞춤형 건강 식단을 제공하는 서비스입니다.
 
 전통 지식과 현대 AI로 맞춤형 건강 여정을 시작하세요.
 
@@ -6,23 +10,13 @@
 
 ```
 /
-├── frontend/            # Next.js 프론트엔드
-│   ├── app/            # Next.js 13+ App Router
-│   ├── components/     # 재사용 가능한 UI 컴포넌트
-│   │   ├── common/    # 공통 컴포넌트 (Button, Input 등)
-│   │   └── ui/        # shadcn/ui 컴포넌트
-│   ├── lib/           # 유틸리티 함수 및 설정
-│   └── public/        # 정적 파일
-│
-├── backend/            # FastAPI 백엔드
-│   ├── app/           # 메인 애플리케이션
-│   │   ├── api/      # API 라우트
-│   │   ├── core/     # 핵심 설정 및 유틸리티
-│   │   ├── models/   # 데이터 모델
-│   │   └── services/ # 비즈니스 로직
-│   └── tests/        # 테스트 코드
-│
-└── README.md
+└── frontend/            # Next.js 프론트엔드
+    ├── app/            # Next.js 13+ App Router
+    ├── components/     # 재사용 가능한 UI 컴포넌트
+    │   ├── common/    # 공통 컴포넌트 (Button, Input 등)
+    │   └── ui/        # shadcn/ui 컴포넌트
+    ├── lib/           # 유틸리티 함수 및 설정
+    └── public/        # 정적 파일
 ```
 
 ## 개발 환경 설정
@@ -30,19 +24,16 @@
 ### 요구 사항
 
 - Node.js 18 이상
-- Python 3.9 이상
 - Git
 
 ### 프론트엔드 설정 (Next.js)
 
 1. 프론트엔드 디렉토리로 이동
-
 ```bash
 cd frontend
 ```
 
 2. 기본 의존성 설치
-
 ```bash
 npm install
 ```
@@ -60,7 +51,39 @@ npm install class-variance-authority clsx tailwind-merge lucide-react
 npm install tailwindcss-animate
 ```
 
-4. PostCSS 설정
+4. shadcn/ui 설치 및 초기화
+
+```bash
+# shadcn/ui CLI 설치
+npx shadcn-ui@latest init
+
+# 설치 과정에서 다음 옵션 선택:
+# - Would you like to use TypeScript? Yes
+# - Which style would you like to use? Default
+# - Which color would you like to use as base color? Slate
+# - Where is your global CSS file? app/globals.css
+# - Would you like to use CSS variables? Yes
+# - Where is your tailwind.config.js located? tailwind.config.js
+# - Configure the import alias for components? @/components
+# - Configure the import alias for utils? @/lib/utils
+```
+
+5. 필요한 컴포넌트 설치 예시
+
+```bash
+# 버튼 컴포넌트 설치
+npx shadcn-ui@latest add button
+
+# 입력 필드 컴포넌트 설치
+npx shadcn-ui@latest add input
+
+# 카드 컴포넌트 설치
+npx shadcn-ui@latest add card
+
+# 기타 필요한 컴포넌트들도 동일한 방식으로 설치
+```
+
+6. PostCSS 설정
 
 `postcss.config.js` 파일이 다음과 같이 설정되어 있는지 확인:
 
@@ -73,7 +96,7 @@ module.exports = {
 }
 ```
 
-5. Tailwind CSS 설정
+7. Tailwind CSS 설정
 
 `tailwind.config.js` 파일이 프로젝트에 맞게 설정되어 있는지 확인:
 
@@ -113,7 +136,7 @@ module.exports = {
 }
 ```
 
-6. 환경 변수 설정
+8. 환경 변수 설정
 
 `.env.example` 파일을 `.env.local`로 복사하고 필요한 경우 값을 수정:
 
@@ -121,79 +144,15 @@ module.exports = {
 cp .env.example .env.local
 ```
 
-7. 개발 서버 실행
+9. 개발 서버 실행
 
 ```bash
 npm run dev
 ```
 
-### 백엔드 설정 (FastAPI)
-
-1. 백엔드 디렉토리로 이동
-
-```bash
-cd backend
-```
-
-2. 가상 환경 생성 및 활성화
-
-```bash
-# Windows
-python -m venv venv
-.\venv\Scripts\activate
-
-# macOS/Linux
-python3 -m venv venv
-source venv/bin/activate
-```
-
-3. 의존성 설치
-
-```bash
-pip install -r requirements.txt
-```
-
-4. 환경 변수 설정
-
-`.env.example` 파일을 `.env`로 복사하고 필요한 경우 값을 수정:
-
-```bash
-cp .env.example .env
-```
-
-5. 개발 서버 실행
-
-```bash
-uvicorn app.main:app --reload
-```
-
-## 주요 기능
-
-### 사용자 인증
-
-- 회원가입: 이름, 이메일, 비밀번호, 전화번호, 알레르기 정보, 건강 목표 등 상세 정보를 수집
-- 로그인: 이메일과 비밀번호로 로그인
-
-### 사용자 프로필
-
-- 프로필 조회: 사용자의 상세 정보 조회
-- 프로필 수정: 사용자 정보 업데이트
-
-## API 엔드포인트
-
-| 경로 | 메서드 | 설명 |
-|------|------|------|
-| `/auth/signup` | POST | 새 사용자 등록 |
-| `/auth/login` | POST | 사용자 로그인 및 토큰 발급 |
-| `/users/me` | GET | 현재 로그인한 사용자 정보 조회 |
-| `/users/{user_id}` | GET | 특정 사용자 정보 조회 |
-| `/users/{user_id}` | PUT | 사용자 정보 업데이트 |
-| `/users/{user_id}` | DELETE | 사용자 계정 삭제 |
-
 ## 기술 스택
 
 ### 프론트엔드
-
 - Next.js 15+ (App Router)
 - React 18
 - Tailwind CSS
@@ -202,19 +161,6 @@ uvicorn app.main:app --reload
 - React Query (서버 상태 관리)
 - React Hook Form (폼 관리)
 - Zod (데이터 유효성 검증)
-
-### 백엔드
-
-- FastAPI (웹 프레임워크)
-- Pydantic (데이터 검증)
-- SQLModel (ORM)
-- MongoDB (메인 데이터베이스)
-- Redis (캐싱, 세션)
-- Celery (비동기 작업)
-- RabbitMQ (메시지 큐)
-- FAISS/Milvus (벡터 데이터베이스)
-- PyJWT (JWT 인증)
-- Bcrypt (비밀번호 해싱)
 
 ## 라이센스
 
