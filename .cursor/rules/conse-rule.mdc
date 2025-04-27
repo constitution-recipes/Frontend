@@ -20,8 +20,8 @@ externalDocs:
 
 - **프로젝트의 방향성, 목표, 핵심 구조**를 이해하려면 항상 `README.md`와 `architecture_overview.md`를 참고하세요.
 - **기술 스택 및 구현 세부사항**은 아래 공식 문서를 기준으로 삼으세요:
-    - [Next.js 공식 문서](https://nextjs.org/docs): 라우팅, 렌더링, 데이터 패칭, 스타일링 등 Next.js 관련 모든 개발 원칙과 예제를 참고합니다.
-    - [shadcn/ui 공식 문서](https://ui.shadcn.com/docs): UI 컴포넌트의 구조, 커스터마이징, 설치 및 사용법, 디자인 시스템 통일성에 관한 내용을 참고합니다.
+    - @Next.js 공식 문서: 라우팅, 렌더링, 데이터 패칭, 스타일링 등 Next.js 관련 모든 개발 원칙과 예제를 참고합니다.
+    - @shadcn/ui 공식 문서: UI 컴포넌트의 구조, 커스터마이징, 설치 및 사용법, 디자인 시스템 통일성에 관한 내용을 참고합니다.
 - 코드 작성, 설계, 리팩터링, 문서화 등 모든 작업에서 위 문서와 독스를 항상 기본 컨텍스트로 삼으세요.
 
 # Design Rule
@@ -143,4 +143,5 @@ For example:
 - Shared Components: The /src/components folder should contain reusable components used across multiple pages or features.
 
 - Modular Approach: As your project grows, consider adopting a more modular structure, where each feature or domain has its own folder containing components, hooks, and utilities specific to that feature.
+
 
