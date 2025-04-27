@@ -60,7 +60,7 @@ export function AuthProvider({ children }) {
       const { user } = await authService.login(email, password);
       setUser(user);
       toast.success('로그인에 성공했습니다!');
-      router.push('/dashboard');
+      router.push('/recommend_recipes');
       return user;
     } catch (error) {
       toast.error(error.response?.data?.detail || '로그인에 실패했습니다. 다시 시도해주세요.');

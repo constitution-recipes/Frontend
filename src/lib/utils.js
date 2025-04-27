@@ -2,10 +2,11 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 /**
- * 클래스 이름을 병합하는 함수
- * clsx 및 tailwind-merge를 활용하여 중복 없이 클래스를 결합
- * @param {...string} inputs - 결합할 클래스 문자열
- * @returns {string} - 병합된 클래스 문자열
+ * 클래스명을 조합하는 유틸리티 함수
+ * tailwind 클래스들을 조합하고 충돌을 해결합니다.
+ * 
+ * @param {...string} inputs - 조합할 클래스명들
+ * @returns {string} 조합된 클래스명
  */
 export function cn(...inputs) {
   return twMerge(clsx(inputs));
