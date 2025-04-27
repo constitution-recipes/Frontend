@@ -76,26 +76,28 @@ export default function SavedRecipesPage() {
 
   return (
     <SidebarLayout>
-      <div className="p-6 sm:p-8">
-        <div className="mb-8 flex items-center gap-2">
-          <Heart size={24} className="text-teal-500" />
-          <h1 className="text-2xl font-bold text-gray-900">저장한 레시피</h1>
+      <div className="p-4 md:p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-6 flex items-center gap-2">
+            <Heart size={24} className="text-teal-500" />
+            <h1 className="text-2xl font-bold text-gray-900">저장한 레시피</h1>
+          </div>
+          {savedRecipes.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+              <Heart size={48} className="mb-4" />
+              <p className="text-lg">저장한 레시피가 없습니다.</p>
+              <Link href="/recommend_recipes">
+                <Button className="mt-6 bg-teal-500 hover:bg-teal-600">레시피 보러가기</Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {savedRecipes.map(recipe => (
+                <RecipeCard key={recipe.id} recipe={recipe} />
+              ))}
+            </div>
+          )}
         </div>
-        {savedRecipes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-            <Heart size={48} className="mb-4" />
-            <p className="text-lg">저장한 레시피가 없습니다.</p>
-            <Link href="/recommend_recipes">
-              <Button className="mt-6 bg-teal-500 hover:bg-teal-600">레시피 보러가기</Button>
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {savedRecipes.map(recipe => (
-              <RecipeCard key={recipe.id} recipe={recipe} />
-            ))}
-          </div>
-        )}
       </div>
     </SidebarLayout>
   );

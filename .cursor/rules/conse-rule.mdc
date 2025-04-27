@@ -1,7 +1,7 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 ---
 description: Always include core project docs and up-to-date framework/component documentation for context and guidance.

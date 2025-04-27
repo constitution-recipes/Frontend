@@ -227,233 +227,235 @@ export default function RecommendRecipesPage() {
 
   return (
     <SidebarLayout>
-      <div className="container mx-auto py-8 px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="text-center mb-12">
-            <h1 className="text-3xl md:text-4xl font-bold mb-4">맞춤 레시피</h1>
-            <p className="text-muted-foreground max-w-3xl mx-auto">
-              당신의 체질과 건강 상태에 맞게 개인화된 레시피를 추천해 드립니다. 
-              원하는 재료, 조리 시간, 난이도 등을 선택하여 더 정확한 맞춤형 레시피를 찾아보세요.
-            </p>
-          </div>
-
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="relative flex-grow">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <Input
-                type="text"
-                placeholder="레시피 검색..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={handleSearchChange}
-              />
+      <div className="py-8 px-4">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="text-center mb-12">
+              <h1 className="text-3xl md:text-4xl font-bold mb-4">맞춤 레시피</h1>
+              <p className="text-muted-foreground max-w-3xl mx-auto">
+                당신의 체질과 건강 상태에 맞게 개인화된 레시피를 추천해 드립니다. 
+                원하는 재료, 조리 시간, 난이도 등을 선택하여 더 정확한 맞춤형 레시피를 찾아보세요.
+              </p>
             </div>
-            <Button 
-              variant="outline" 
-              className="flex items-center gap-2"
-              onClick={toggleFilter}
-            >
-              <Filter className="h-4 w-4" />
-              필터
-              <ChevronDown className={`h-4 w-4 transition-transform ${activeFilter ? 'rotate-180' : ''}`} />
-            </Button>
-          </div>
 
-          {/* 필터 패널 */}
-          {activeFilter && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="mb-8 p-4 rounded-lg border border-border/40 bg-card"
-            >
-              <Tabs defaultValue="category">
-                <TabsList className="mb-4">
-                  <TabsTrigger value="category">카테고리</TabsTrigger>
-                  <TabsTrigger value="time">조리시간</TabsTrigger>
-                  <TabsTrigger value="difficulty">난이도</TabsTrigger>
-                  <TabsTrigger value="bodyType">체질</TabsTrigger>
-                  <TabsTrigger value="ingredients">재료</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="category">
-                  <div className="flex flex-wrap gap-2">
-                    {['전체', '한식', '중식', '일식', '양식', '디저트', '음료'].map((category) => (
-                      <button
-                        key={category}
-                        onClick={() => handleFilterChange('category', category)}
-                        className={`px-4 py-2 rounded-full text-sm transition-colors ${
-                          filters.category === category 
-                            ? 'bg-primary text-white' 
-                            : 'bg-muted hover:bg-muted/80 text-foreground/80'
-                        }`}
-                      >
-                        {category}
-                      </button>
-                    ))}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="time">
-                  <div className="flex flex-wrap gap-2">
-                    {['전체', '15분 이내', '30분 이내', '1시간 이내', '1시간 이상'].map((time) => (
-                      <button
-                        key={time}
-                        onClick={() => handleFilterChange('time', time)}
-                        className={`px-4 py-2 rounded-full text-sm transition-colors ${
-                          filters.time === time 
-                            ? 'bg-primary text-white' 
-                            : 'bg-muted hover:bg-muted/80 text-foreground/80'
-                        }`}
-                      >
-                        {time}
-                      </button>
-                    ))}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="difficulty">
-                  <div className="flex flex-wrap gap-2">
-                    {['전체', '쉬움', '중간', '어려움'].map((difficulty) => (
-                      <button
-                        key={difficulty}
-                        onClick={() => handleFilterChange('difficulty', difficulty)}
-                        className={`px-4 py-2 rounded-full text-sm transition-colors ${
-                          filters.difficulty === difficulty 
-                            ? 'bg-primary text-white' 
-                            : 'bg-muted hover:bg-muted/80 text-foreground/80'
-                        }`}
-                      >
-                        {difficulty}
-                      </button>
-                    ))}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="bodyType">
-                  <div className="flex flex-wrap gap-2">
-                    {['태양체질', '태음체질', '소양체질', '소음체질'].map((type) => (
-                      <button
-                        key={type}
-                        onClick={() => handleFilterChange('bodyType', type)}
-                        className={`px-4 py-2 rounded-full text-sm transition-colors ${
-                          filters.bodyType === type 
-                            ? 'bg-primary text-white' 
-                            : 'bg-muted hover:bg-muted/80 text-foreground/80'
-                        }`}
-                      >
-                        {type}
-                      </button>
-                    ))}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="ingredients">
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                    {['육류', '해산물', '채소', '과일', '유제품', '견과류'].map((ingredient) => (
-                      <div key={ingredient} className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id={`ingredient-${ingredient}`}
-                          checked={filters.ingredients.includes(ingredient)}
-                          onChange={() => handleCheckboxChange('ingredients', ingredient)}
-                          className="rounded border-border/40 text-primary focus:ring-primary/30"
-                        />
-                        <Label htmlFor={`ingredient-${ingredient}`}>{ingredient}</Label>
-                      </div>
-                    ))}
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </motion.div>
-          )}
-
-          {/* 활성화된 필터 표시 */}
-          {activeFilters.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 mb-6">
-              <span className="text-sm text-gray-500">활성 필터:</span>
-              {activeFilters.map((filter, index) => (
-                <Badge key={index} variant="outline" className="flex items-center gap-1">
-                  {filter}
-                  <button
-                    onClick={() => handleRemoveFilter(filter)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <X size={14} />
-                  </button>
-                </Badge>
-              ))}
-            </div>
-          )}
-          
-          {/* 결과 탭 */}
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="w-full max-w-md mx-auto grid grid-cols-3 mb-8">
-              <TabsTrigger value="all">전체 ({filteredRecipes.length})</TabsTrigger>
-              <TabsTrigger value="bodyType">체질 맞춤 ({filteredRecipes.filter(r => r.suitableBodyTypes.includes(bodyType)).length})</TabsTrigger>
-              <TabsTrigger value="trending">인기 레시피 ({filteredRecipes.filter(r => r.trending).length})</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="all">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredRecipes.length > 0 ? (
-                  filteredRecipes.map(recipe => (
-                    <RecipeCard key={recipe.id} recipe={recipe} bodyType={bodyType} />
-                  ))
-                ) : (
-                  <div className="col-span-3 text-center py-12">
-                    <h3 className="text-lg text-gray-500 mb-2">검색 결과가 없습니다.</h3>
-                    <p className="text-gray-400 mb-4">다른 검색어나 필터를 사용해보세요.</p>
-                    <Button onClick={resetFilters} variant="outline">필터 초기화</Button>
-                  </div>
-                )}
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+              <div className="relative flex-grow">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <Input
+                  type="text"
+                  placeholder="레시피 검색..."
+                  className="pl-10"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                />
               </div>
-            </TabsContent>
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2"
+                onClick={toggleFilter}
+              >
+                <Filter className="h-4 w-4" />
+                필터
+                <ChevronDown className={`h-4 w-4 transition-transform ${activeFilter ? 'rotate-180' : ''}`} />
+              </Button>
+            </div>
+
+            {/* 필터 패널 */}
+            {activeFilter && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="mb-8 p-4 rounded-lg border border-border/40 bg-card"
+              >
+                <Tabs defaultValue="category">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="category">카테고리</TabsTrigger>
+                    <TabsTrigger value="time">조리시간</TabsTrigger>
+                    <TabsTrigger value="difficulty">난이도</TabsTrigger>
+                    <TabsTrigger value="bodyType">체질</TabsTrigger>
+                    <TabsTrigger value="ingredients">재료</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="category">
+                    <div className="flex flex-wrap gap-2">
+                      {['전체', '한식', '중식', '일식', '양식', '디저트', '음료'].map((category) => (
+                        <button
+                          key={category}
+                          onClick={() => handleFilterChange('category', category)}
+                          className={`px-4 py-2 rounded-full text-sm transition-colors ${
+                            filters.category === category 
+                              ? 'bg-primary text-white' 
+                              : 'bg-muted hover:bg-muted/80 text-foreground/80'
+                          }`}
+                        >
+                          {category}
+                        </button>
+                      ))}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="time">
+                    <div className="flex flex-wrap gap-2">
+                      {['전체', '15분 이내', '30분 이내', '1시간 이내', '1시간 이상'].map((time) => (
+                        <button
+                          key={time}
+                          onClick={() => handleFilterChange('time', time)}
+                          className={`px-4 py-2 rounded-full text-sm transition-colors ${
+                            filters.time === time 
+                              ? 'bg-primary text-white' 
+                              : 'bg-muted hover:bg-muted/80 text-foreground/80'
+                          }`}
+                        >
+                          {time}
+                        </button>
+                      ))}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="difficulty">
+                    <div className="flex flex-wrap gap-2">
+                      {['전체', '쉬움', '중간', '어려움'].map((difficulty) => (
+                        <button
+                          key={difficulty}
+                          onClick={() => handleFilterChange('difficulty', difficulty)}
+                          className={`px-4 py-2 rounded-full text-sm transition-colors ${
+                            filters.difficulty === difficulty 
+                              ? 'bg-primary text-white' 
+                              : 'bg-muted hover:bg-muted/80 text-foreground/80'
+                          }`}
+                        >
+                          {difficulty}
+                        </button>
+                      ))}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="bodyType">
+                    <div className="flex flex-wrap gap-2">
+                      {['태양체질', '태음체질', '소양체질', '소음체질'].map((type) => (
+                        <button
+                          key={type}
+                          onClick={() => handleFilterChange('bodyType', type)}
+                          className={`px-4 py-2 rounded-full text-sm transition-colors ${
+                            filters.bodyType === type 
+                              ? 'bg-primary text-white' 
+                              : 'bg-muted hover:bg-muted/80 text-foreground/80'
+                          }`}
+                        >
+                          {type}
+                        </button>
+                      ))}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="ingredients">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                      {['육류', '해산물', '채소', '과일', '유제품', '견과류'].map((ingredient) => (
+                        <div key={ingredient} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`ingredient-${ingredient}`}
+                            checked={filters.ingredients.includes(ingredient)}
+                            onChange={() => handleCheckboxChange('ingredients', ingredient)}
+                            className="rounded border-border/40 text-primary focus:ring-primary/30"
+                          />
+                          <Label htmlFor={`ingredient-${ingredient}`}>{ingredient}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </motion.div>
+            )}
+
+            {/* 활성화된 필터 표시 */}
+            {activeFilters.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 mb-6">
+                <span className="text-sm text-gray-500">활성 필터:</span>
+                {activeFilters.map((filter, index) => (
+                  <Badge key={index} variant="outline" className="flex items-center gap-1">
+                    {filter}
+                    <button
+                      onClick={() => handleRemoveFilter(filter)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <X size={14} />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
             
-            <TabsContent value="bodyType">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredRecipes.filter(r => r.suitableBodyTypes.includes(bodyType)).length > 0 ? (
-                  filteredRecipes
-                    .filter(r => r.suitableBodyTypes.includes(bodyType))
-                    .map(recipe => (
+            {/* 결과 탭 */}
+            <Tabs defaultValue="all" className="w-full">
+              <TabsList className="w-full max-w-md mx-auto grid grid-cols-3 mb-8">
+                <TabsTrigger value="all">전체 ({filteredRecipes.length})</TabsTrigger>
+                <TabsTrigger value="bodyType">체질 맞춤 ({filteredRecipes.filter(r => r.suitableBodyTypes.includes(bodyType)).length})</TabsTrigger>
+                <TabsTrigger value="trending">인기 레시피 ({filteredRecipes.filter(r => r.trending).length})</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="all">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredRecipes.length > 0 ? (
+                    filteredRecipes.map(recipe => (
                       <RecipeCard key={recipe.id} recipe={recipe} bodyType={bodyType} />
                     ))
-                ) : (
-                  <div className="col-span-3 text-center py-12">
-                    <h3 className="text-lg text-gray-500 mb-2">체질 맞춤 레시피가 없습니다.</h3>
-                    <p className="text-gray-400 mb-4">다른 필터를 사용해보세요.</p>
-                    <Button onClick={resetFilters} variant="outline">필터 초기화</Button>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="trending">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredRecipes.filter(r => r.trending).length > 0 ? (
-                  filteredRecipes
-                    .filter(r => r.trending)
-                    .map(recipe => (
-                      <RecipeCard key={recipe.id} recipe={recipe} bodyType={bodyType} />
-                    ))
-                ) : (
-                  <div className="col-span-3 text-center py-12">
-                    <h3 className="text-lg text-gray-500 mb-2">인기 레시피가 없습니다.</h3>
-                    <p className="text-gray-400 mb-4">다른 필터를 사용해보세요.</p>
-                    <Button onClick={resetFilters} variant="outline">필터 초기화</Button>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </motion.div>
+                  ) : (
+                    <div className="col-span-3 text-center py-12">
+                      <h3 className="text-lg text-gray-500 mb-2">검색 결과가 없습니다.</h3>
+                      <p className="text-gray-400 mb-4">다른 검색어나 필터를 사용해보세요.</p>
+                      <Button onClick={resetFilters} variant="outline">필터 초기화</Button>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="bodyType">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredRecipes.filter(r => r.suitableBodyTypes.includes(bodyType)).length > 0 ? (
+                    filteredRecipes
+                      .filter(r => r.suitableBodyTypes.includes(bodyType))
+                      .map(recipe => (
+                        <RecipeCard key={recipe.id} recipe={recipe} bodyType={bodyType} />
+                      ))
+                  ) : (
+                    <div className="col-span-3 text-center py-12">
+                      <h3 className="text-lg text-gray-500 mb-2">체질 맞춤 레시피가 없습니다.</h3>
+                      <p className="text-gray-400 mb-4">다른 필터를 사용해보세요.</p>
+                      <Button onClick={resetFilters} variant="outline">필터 초기화</Button>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="trending">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredRecipes.filter(r => r.trending).length > 0 ? (
+                    filteredRecipes
+                      .filter(r => r.trending)
+                      .map(recipe => (
+                        <RecipeCard key={recipe.id} recipe={recipe} bodyType={bodyType} />
+                      ))
+                  ) : (
+                    <div className="col-span-3 text-center py-12">
+                      <h3 className="text-lg text-gray-500 mb-2">인기 레시피가 없습니다.</h3>
+                      <p className="text-gray-400 mb-4">다른 필터를 사용해보세요.</p>
+                      <Button onClick={resetFilters} variant="outline">필터 초기화</Button>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </motion.div>
+        </div>
       </div>
     </SidebarLayout>
   );

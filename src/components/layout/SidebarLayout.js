@@ -42,41 +42,27 @@ export default function SidebarLayout({ children }) {
 
   return (
     <div className="flex min-h-screen bg-gradient-primary relative">
-      {/* 사이드바 토글 버튼 */}
+      {/* 모바일에서만 보이도록 md:hidden 추가 */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-primary text-white shadow-md hover:bg-primary/90 transition-all focus:outline-none focus:ring-2 focus:ring-primary/50"
-        aria-label={sidebarOpen ? "닫기" : "메뉴 열기"}
+        className="fixed bottom-24 right-6 z-50 py-2.5 px-4 rounded-full bg-primary text-white shadow-lg hover:bg-primary/90 transition-all focus:outline-none focus:ring-2 focus:ring-primary/50 md:hidden flex items-center gap-2 group"
+        aria-label={sidebarOpen ? "닫기" : "채팅 기록 및 옵션 열기"}
       >
         <Menu className="h-5 w-5" />
+        <span className="font-medium text-sm">채팅 기록 및 옵션</span>
       </button>
 
-      {/* 애니메이션이 있는 사이드바 */}
-      <AnimatePresence mode="wait">
-        {sidebarOpen && (
-          <motion.div
-            initial={{ x: -320, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -320, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed top-0 left-0 h-full z-40 w-80 md:w-72 bg-white shadow-xl"
-          >
-            <Sidebar />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* 데스크탑 및 모바일에서 사이드바를 고정 표시 */}
+      {sidebarOpen && (
+        <div className="fixed top-0 left-0 h-full z-40 w-80 md:w-72 bg-white shadow-xl">
+          <Sidebar />
+        </div>
+      )}
 
       {/* 메인 컨텐츠 영역 */}
-      <motion.div
-        animate={{ 
-          marginLeft: sidebarOpen ? "320px" : "0",
-          width: sidebarOpen ? "calc(100% - 320px)" : "100%"
-        }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="flex-1 min-h-screen transition-all duration-300"
-      >
+      <div className="flex-1 min-h-screen ml-0 md:ml-72 transition-all duration-300">
         {children}
-      </motion.div>
+      </div>
 
       {/* 사이드바가 열려있을 때 모바일에서 배경 오버레이 */}
       <AnimatePresence>

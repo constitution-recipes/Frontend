@@ -55,18 +55,16 @@ const features = [
 
 export default function SignupPageClient() {
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
+    <div className="min-h-screen flex flex-col md:flex-row bg-white">
       {/* 왼쪽 소개 영역 */}
-      <div className="hidden md:block md:w-1/2 relative overflow-hidden bg-gradient-to-br from-background to-primary/5">
+      <div className="hidden md:block md:w-1/2 relative overflow-hidden bg-white/90">
         {/* 배경 이미지와 효과 */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-pattern-dots opacity-[0.03] dark:opacity-[0.05]" />
         </div>
-        
         {/* 블러 효과 원형들 */}
         <div className="absolute top-20 right-20 w-96 h-96 bg-primary/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-20 -left-20 w-96 h-96 bg-secondary/10 rounded-full blur-[100px]" />
-        
         {/* 메인 컨텐츠 */}
         <motion.div
           variants={containerVariants}
@@ -90,14 +88,13 @@ export default function SignupPageClient() {
               디자인해보세요.
             </p>
           </motion.div>
-          
           {/* 특징 카드 리스트 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl">
             {features.map((feature, index) => (
               <motion.div
                 key={index}
                 variants={itemVariants}
-                className="p-5 rounded-xl glass-effect border border-white/20 hover:border-primary/20 transition-all shadow-soft hover:shadow-md group"
+                className="p-5 rounded-xl glass-effect border border-white/20 hover:border-primary/20 transition-all shadow-soft hover:shadow-md group bg-white/80"
               >
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-primary/10 to-secondary/10 mb-3 group-hover:from-primary/20 group-hover:to-secondary/20 transition-all">
                   <span className="text-2xl">{feature.icon}</span>
@@ -109,7 +106,6 @@ export default function SignupPageClient() {
           </div>
         </motion.div>
       </div>
-
       {/* 오른쪽 회원가입 영역 */}
       <motion.div 
         initial={{ opacity: 0 }}
@@ -130,13 +126,12 @@ export default function SignupPageClient() {
               </div>
             </Link>
           </motion.div>
-          
           {/* 회원가입 폼 */}
           <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.5 }}
-            className="card shadow-soft border border-border/40"
+            className="card shadow-soft border border-border/40 bg-white"
           >
             <SignupForm />
           </motion.div>

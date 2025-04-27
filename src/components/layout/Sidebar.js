@@ -114,6 +114,20 @@ export default function Sidebar() {
         </div>
       </div>
       
+      {/* 하단 옵션 버튼 */}
+      <div className="px-4 pb-2">
+        <button
+          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-muted hover:bg-primary/10 text-foreground text-sm font-medium transition-colors border border-border/30 mb-2"
+          onClick={() => {
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new Event('openChatOptions'));
+            }
+          }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6l4 2" /></svg>
+          <span>옵션</span>
+        </button>
+      </div>
       {/* 하단 정보 영역 */}
       <div className="p-4 text-center text-xs text-muted-foreground border-t border-border/40">
         <p>© 2023 ChiDiet</p>
