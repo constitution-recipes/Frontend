@@ -262,7 +262,7 @@ export default function ChatbotPage() {
 
   return (
     <SidebarLayout>
-      <div className="flex flex-col h-screen w-full bg-gradient-primary relative">
+      <div className="flex flex-col h-full min-h-screen w-full bg-gradient-primary relative">
         {/* 채팅 시작 전: 중앙 인풋 + 기능 카드 */}
         {initialState && (
           <ChatbotIntro
@@ -275,7 +275,7 @@ export default function ChatbotPage() {
 
         {/* 기존 챗봇 UI: 채팅 시작 후 */}
         {!initialState && (
-          <div className="flex flex-col h-screen w-full">
+          <div className="flex flex-col h-full w-full flex-1 min-h-0">
             {/* 옵션 패널 - 모달 */}
             <AnimatePresence>
               {showOptions && (
@@ -361,133 +361,141 @@ export default function ChatbotPage() {
               )}
             </AnimatePresence>
 
-            {/* 채팅 컨테이너: 메시지 영역 + 입력 영역 분리 */}
-            <div className="flex flex-col flex-1 overflow-visible">
-              {/* 메시지 영역 (스크롤 가능) */}
-              <div className="flex-1 overflow-hidden p-4 md:p-6 pt-16 md:pt-16" style={{ paddingBottom: '96px' }}>
-                <div className="max-w-3xl mx-auto space-y-6 h-[calc(100vh-16rem)] overflow-y-auto pr-2">
-                  {/* 메시지 렌더링 */}
-                  {messages.map((message, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.05 }}
-                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      {message.role === 'assistant' && (
+            {/* 채팅 메시지 영역 (스크롤) */}
+            <div className="flex flex-col h-full min-h-0">
+              {/* 채팅 메시지 영역 */}
+              <div className="grow overflow-y-auto min-h-0 w-full p-4 md:p-6 pt-16 md:pt-16" style={{ paddingBottom: '120px' }}>
+                <div className="max-w-3xl mx-auto">
+                  <div className="space-y-6">
+                    {/* 메시지들 */}
+                    {messages.map((message, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                      >
+                        {message.role === 'assistant' && (
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-primary/80 text-white flex items-center justify-center text-sm mr-2 flex-shrink-0">
+                            <ChefHat size={16} />
+                          </div>
+                        )}
+                        <div
+                          className={`max-w-md px-5 py-3 rounded-2xl shadow-sm text-base ${
+                            message.role === 'user'
+                              ? 'bg-primary text-primary-foreground rounded-tr-none'
+                              : 'bg-card border border-border/40 rounded-tl-none'
+                          }`}
+                        >
+                          {message.content}
+                        </div>
+                        {message.role === 'user' && (
+                          <div className="w-8 h-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-sm ml-2 flex-shrink-0">
+                            {userProfile.name[0]}
+                          </div>
+                        )}
+                      </motion.div>
+                    ))}
+
+                    {/* 생성된 레시피 */}
+                    {generatedRecipe && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: messages.length * 0.05 }}
+                        className="flex justify-start"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-primary/80 text-white flex items-center justify-center text-sm mr-2 mt-3 flex-shrink-0">
+                          <ChefHat size={16} />
+                        </div>
+                        <div className="max-w-md w-full bg-card shadow-soft rounded-2xl rounded-tl-none p-5 border border-border/40">
+                          <ChatRecipeCard recipe={generatedRecipe} />
+                          <div className="flex justify-between mt-4 gap-3">
+                            <Button 
+                              variant="outline" 
+                              className="text-primary border-primary/30 hover:bg-primary/10 hover:text-primary flex-1"
+                              onClick={saveRecipe}
+                            >
+                              <Save size={16} className="mr-1" />
+                              저장
+                            </Button>
+                            <Link href={`/recipe/${generatedRecipe.id}`} className="flex-1">
+                              <Button className="bg-primary hover:bg-primary/90 w-full">자세히 보기</Button>
+                            </Link>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* 로딩 표시 */}
+                    {loading && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: messages.length * 0.05 + 0.1 }}
+                        className="flex justify-start"
+                      >
                         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-primary/80 text-white flex items-center justify-center text-sm mr-2 flex-shrink-0">
                           <ChefHat size={16} />
                         </div>
-                      )}
-                      <div
-                        className={`max-w-md px-5 py-3 rounded-2xl shadow-sm text-base ${
-                          message.role === 'user'
-                            ? 'bg-primary text-primary-foreground rounded-tr-none'
-                            : 'bg-card border border-border/40 rounded-tl-none'
-                        }`}
-                      >
-                        {message.content}
-                      </div>
-                      {message.role === 'user' && (
-                        <div className="w-8 h-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-sm ml-2 flex-shrink-0">
-                          {userProfile.name[0]}
-                        </div>
-                      )}
-                    </motion.div>
-                  ))}
-                  {/* 생성된 레시피 */}
-                  {generatedRecipe && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: messages.length * 0.05 }}
-                      className="flex justify-start"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-primary/80 text-white flex items-center justify-center text-sm mr-2 mt-3 flex-shrink-0">
-                        <ChefHat size={16} />
-                      </div>
-                      <div className="max-w-md w-full bg-card shadow-soft rounded-2xl rounded-tl-none p-5 border border-border/40">
-                        <ChatRecipeCard recipe={generatedRecipe} />
-                        <div className="flex justify-between mt-4 gap-3">
-                          <Button 
-                            variant="outline" 
-                            className="text-primary border-primary/30 hover:bg-primary/10 hover:text-primary flex-1"
-                            onClick={saveRecipe}
-                          >
-                            <Save size={16} className="mr-1" />
-                            저장
-                          </Button>
-                          <Link href={`/recipe/${generatedRecipe.id}`} className="flex-1">
-                            <Button className="bg-primary hover:bg-primary/90 w-full">자세히 보기</Button>
-                          </Link>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                  {/* 로딩 표시 */}
-                  {loading && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: messages.length * 0.05 + 0.1 }}
-                      className="flex justify-start"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-primary/80 text-white flex items-center justify-center text-sm mr-2 flex-shrink-0">
-                        <ChefHat size={16} />
-                      </div>
-                      <div className="bg-card p-4 rounded-xl rounded-tl-none shadow-sm border border-border/40">
-                        <div className="flex items-center space-x-3">
-                          <div className="flex space-x-1">
-                            <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-                            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '0.2s' }}></span>
-                            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '0.4s' }}></span>
+                        <div className="bg-card p-4 rounded-xl rounded-tl-none shadow-sm border border-border/40">
+                          <div className="flex items-center space-x-3">
+                            <div className="flex space-x-1">
+                              <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '0.2s' }}></span>
+                              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '0.4s' }}></span>
+                            </div>
+                            <p className="text-sm text-muted-foreground">답변 생성 중...</p>
                           </div>
-                          <p className="text-sm text-muted-foreground">답변 생성 중...</p>
                         </div>
-                      </div>
-                    </motion.div>
-                  )}
-                  <div ref={messagesEndRef} />
+                      </motion.div>
+                    )}
+
+                    {/* 자동 스크롤용 더미 */}
+                    <div ref={messagesEndRef} />
+                  </div>
                 </div>
               </div>
-              {/* 입력 영역 (고정) */}
-              <div className="bg-card/95 backdrop-blur-sm border-t border-border/40 py-4 px-4 z-30">
-                <div className="max-w-3xl mx-auto flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <Input
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      placeholder="AI 요리사에게 무엇이든 물어보세요! 🍳"
-                      className="pl-4 pr-10 py-5 rounded-full bg-muted border-none shadow-sm text-base focus:ring-2 focus:ring-primary/30"
-                      disabled={loading}
-                      autoComplete="off"
-                    />
-                    {input && (
-                      <button
-                        type="button"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
-                        onClick={() => setInput('')}
-                      >
-                        <XCircle className="h-5 w-5" />
-                      </button>
-                    )}
-                  </div>
-                  <Button
-                    type="submit"
-                    disabled={loading || !input.trim()}
-                    className="rounded-full bg-primary hover:bg-primary/90 shadow-md w-12 h-12 flex items-center justify-center p-0"
-                  >
-                    {loading ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <Send className="h-5 w-5" />
-                    )}
-                  </Button>
+              {/* 입력 영역 (항상 화면 하단 고정) */}
+              <div className="fixed bottom-0 left-0 right-0 md:left-72 bg-card/95 backdrop-blur-sm border-t border-border/40 py-4 px-4 z-40 shadow-[0_-2px_10px_0_rgba(0,0,0,0.05)]">
+                <div className="max-w-3xl mx-auto">
+                  <form onSubmit={handleSubmit} className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Input
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        placeholder="AI 요리사에게 무엇이든 물어보세요! 🍳"
+                        className="pl-4 pr-10 py-5 rounded-full bg-muted border-none shadow-sm text-base focus:ring-2 focus:ring-primary/30"
+                        disabled={loading}
+                        autoComplete="off"
+                      />
+                      {input && (
+                        <button
+                          type="button"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                          onClick={() => setInput('')}
+                        >
+                          <XCircle className="h-5 w-5" />
+                        </button>
+                      )}
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={loading || !input.trim()}
+                      className="rounded-full bg-primary hover:bg-primary/90 shadow-md w-12 h-12 flex items-center justify-center p-0"
+                    >
+                      {loading ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Send className="h-5 w-5" />
+                      )}
+                    </Button>
+                  </form>
+                  <p className="mt-2 text-xs text-muted-foreground text-center">
+                    건강 정보, 선호하는 음식, 필요한 영양소 등을 자세히 알려주시면 더 맞춤화된 레시피를 제공해드립니다.
+                  </p>
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground text-center">
-                  건강 정보, 선호하는 음식, 필요한 영양소 등을 자세히 알려주시면 더 맞춤화된 레시피를 제공해드립니다.
-                </p>
               </div>
             </div>
           </div>

@@ -32,7 +32,7 @@ export default function RootLayout({ children }) {
       <body className={`min-h-screen bg-background font-sans antialiased ${notoSansKr.className}`}>
         <AuthProvider>
           <NavBar />
-          <main className="relative flex min-h-screen flex-col pt-16">
+          <main className="relative flex min-h-screen flex-col">
             {children}
           </main>
           <Toaster 
