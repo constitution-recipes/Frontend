@@ -2,6 +2,7 @@
 
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import qs from 'qs';
 
 // API URL 설정
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -20,6 +21,16 @@ export const authService = {
   async signup(userData) {
     try {
       const response = await axios.post(`${API_URL}/auth/signup`, userData);
+      // 회원가입 응답에 access_token이 포함되어 있다면 저장
+      const { access_token } = response.data;
+      if (access_token) {
+        Cookies.set(AUTH_COOKIE_NAME, access_token, {
+          expires: 7, // 7일간 유효
+          path: '/',
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+        });
+      }
       return response.data;
     } catch (error) {
       console.error('Signup error:', error.response?.data || error.message);
@@ -35,7 +46,15 @@ export const authService = {
    */
   async login(email, password) {
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, { email, password });
+      const response = await axios.post(
+        `${API_URL}/auth/login`,
+        qs.stringify({ username: email, password }),
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        }
+      );
       const { access_token, user } = response.data;
 
       // JWT 토큰을 HTTP 전용 쿠키에 저장
@@ -75,5 +94,29 @@ export const authService = {
    */
   getToken() {
     return Cookies.get(AUTH_COOKIE_NAME) || null;
+  },
+
+  /**
+   * 프로필 정보 업데이트
+   * @param {Object} profileData - 프로필 데이터 (알레르기, 건강목표 등)
+   * @returns {Promise<Object>} - 업데이트 결과
+   */
+  async updateProfile(profileData) {
+    try {
+      const token = this.getToken();
+      const response = await axios.put(
+        `${API_URL}/auth/profile`,
+        profileData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Update profile error:', error.response?.data || error.message);
+      throw error;
+    }
   },
 }; 
