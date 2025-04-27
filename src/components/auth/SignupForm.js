@@ -113,7 +113,7 @@ export function SignupForm() {
     try {
       // TODO: Implement actual signup logic here
       await new Promise(resolve => setTimeout(resolve, 1500)); // Simulated API call
-      router.push('/dashboard');
+      router.push('/recommend_recipes');
     } catch (err) {
       setError('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
     } finally {

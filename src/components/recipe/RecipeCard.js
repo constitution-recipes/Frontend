@@ -1,11 +1,35 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Clock, Star, ChefHat, Tag, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
 
 export function RecipeCard({ recipe }) {
   const { id, title, description, difficulty, prepTime, cookTime, image, rating, suitableFor, tags } = recipe;
+  const [isSaved, setIsSaved] = useState(false);
+  
+  // 마운트 시 localStorage에서 저장 여부 확인
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
+    setIsSaved(saved.includes(id));
+  }, [id]);
+  
+  // 하트 클릭 시 저장/해제
+  const handleSave = (e) => {
+    e.preventDefault(); // 클릭 이벤트가 Link로 전파되는 것을 방지
+    const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
+    let updated;
+    if (isSaved) {
+      updated = saved.filter(savedId => savedId !== id);
+    } else {
+      updated = [...saved, id];
+    }
+    localStorage.setItem('savedRecipes', JSON.stringify(updated));
+    setIsSaved(!isSaved);
+  };
   
   // 난이도에 따른 색상 설정
   const difficultyColor = {
@@ -25,8 +49,11 @@ export function RecipeCard({ recipe }) {
           className="object-cover"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
-        <button className="absolute top-3 right-3 p-1.5 bg-white/80 backdrop-blur-sm rounded-full transition-colors hover:bg-white">
-          <Heart size={18} className="text-gray-600 hover:text-red-500" />
+        <button 
+          onClick={handleSave}
+          className="absolute top-3 right-3 p-1.5 bg-white/80 backdrop-blur-sm rounded-full transition-colors hover:bg-white"
+        >
+          <Heart size={18} className={isSaved ? "text-red-500 fill-red-500" : "text-gray-600 hover:text-red-500"} />
         </button>
         <div className="absolute bottom-3 left-3 flex gap-1.5">
           {tags.slice(0, 2).map((tag, index) => (

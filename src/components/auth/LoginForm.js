@@ -25,7 +25,7 @@ export function LoginForm() {
     try {
       // TODO: Implement actual login logic here
       await new Promise(resolve => setTimeout(resolve, 1500)); // Simulated API call
-      router.push('/dashboard');
+      router.push('/chatbot');
     } catch (err) {
       setError('이메일 또는 비밀번호가 올바르지 않습니다.');
     } finally {

@@ -9,7 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ChatRecipeCard } from '@/components/recipe/ChatRecipeCard';
-import { Send, ArrowLeft, Save, ChevronDown, ChevronUp, ChefHat, Loader2 } from 'lucide-react';
+import { Send, ArrowLeft, Save, ChevronDown, ChevronUp, ChefHat, Loader2, Settings, XCircle } from 'lucide-react';
+import SidebarLayout from '@/components/layout/SidebarLayout';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // 가상의 사용자 정보 (실제로는 로그인 상태에서 가져옵니다)
 const userProfile = {
@@ -117,103 +119,108 @@ export default function ChatbotPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* 네비게이션 바 */}
-      <nav className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex">
-              <div className="flex-shrink-0 flex items-center">
-                <Link href="/" className="text-2xl font-bold text-teal-500">ChiDiet</Link>
-              </div>
-            </div>
-            <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
-              <Link href="/dashboard">
-                <Button variant="ghost" className="text-gray-500 hover:text-gray-700">
-                  맞춤 레시피로 돌아가기
-                </Button>
-              </Link>
-              <button
-                type="button"
-                className="text-gray-500 hover:text-gray-700 focus:outline-none"
-              >
-                로그아웃
-              </button>
-            </div>
-          </div>
+    <SidebarLayout>
+      <div className="flex flex-col flex-1 overflow-hidden min-h-screen bg-gradient-to-b from-teal-50 via-white to-white relative">
+        {/* 옵션 FAB 버튼 (fancy) */}
+        <div className="fixed z-40 bottom-24 right-6 md:bottom-10 md:right-10 group">
+          <button
+            onClick={() => setShowOptions(true)}
+            className="w-14 h-14 rounded-full bg-gradient-to-tr from-teal-400 via-teal-500 to-teal-600 shadow-xl flex items-center justify-center transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-teal-200"
+            aria-label="옵션"
+          >
+            <Settings size={28} className="text-white" />
+          </button>
+          <span className="absolute left-1/2 -translate-x-1/2 bottom-16 bg-black/80 text-white text-xs rounded-lg px-3 py-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none select-none whitespace-nowrap">
+            옵션
+          </span>
         </div>
-      </nav>
 
-      {/* 메인 컨텐츠 */}
-      <div className="flex flex-col flex-1 overflow-hidden">
-        {/* 뒤로가기 및 옵션 헤더 */}
-        <div className="bg-white border-b py-3 px-4">
-          <div className="max-w-3xl mx-auto flex justify-between items-center">
-            <Link href="/dashboard" className="flex items-center text-gray-600 hover:text-gray-900">
-              <ArrowLeft size={18} className="mr-1" />
-              <span>레시피 목록으로 돌아가기</span>
-            </Link>
-            <button
-              onClick={() => setShowOptions(!showOptions)}
-              className="flex items-center text-gray-600 hover:text-gray-900"
+        {/* 옵션 패널 - fancy 카드 */}
+        <AnimatePresence>
+          {showOptions && (
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
             >
-              옵션
-              {showOptions ? <ChevronUp size={18} className="ml-1" /> : <ChevronDown size={18} className="ml-1" />}
-            </button>
-          </div>
-        </div>
-
-        {/* 옵션 패널 */}
-        {showOptions && (
-          <div className="bg-gray-50 border-b py-3 px-4 animate-in slide-in-from-top duration-300">
-            <div className="max-w-3xl mx-auto">
-              <div className="flex items-center justify-between bg-white p-3 rounded-lg shadow-sm">
-                <div className="flex items-center">
-                  <Switch 
-                    id="useProfile" 
-                    checked={useProfile} 
-                    onCheckedChange={setUseProfile}
-                  />
-                  <Label htmlFor="useProfile" className="ml-2">내 프로필 정보 활용하기</Label>
-                </div>
-                {useProfile && (
-                  <div className="text-sm text-gray-500">
-                    <span>알레르기: {userProfile.allergies.join(', ')}</span>
-                    <span className="mx-2">|</span>
-                    <span>식이: {userProfile.dietaryPreferences.join(', ')}</span>
+              <motion.div
+                className="bg-white rounded-3xl shadow-2xl p-0 w-full max-w-md mx-auto relative overflow-hidden"
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              >
+                {/* 상단 컬러풀 원형 아이콘 */}
+                <div className="flex flex-col items-center pt-8 pb-2 bg-gradient-to-r from-teal-400 via-teal-300 to-teal-500">
+                  <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-lg mb-2">
+                    <Settings size={32} className="text-teal-500" />
                   </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+                  <h2 className="text-lg font-bold text-white tracking-tight">챗봇 옵션</h2>
+                </div>
+                <button
+                  onClick={() => setShowOptions(false)}
+                  className="absolute top-4 right-4 text-teal-400 hover:text-teal-600 focus:outline-none"
+                >
+                  <XCircle size={32} />
+                  <span className="sr-only">옵션 닫기</span>
+                </button>
+                <div className="p-8 pt-4 flex flex-col gap-6">
+                  <div className="flex items-center">
+                    <Switch 
+                      id="useProfile" 
+                      checked={useProfile} 
+                      onCheckedChange={setUseProfile}
+                    />
+                    <Label htmlFor="useProfile" className="ml-2 text-base">내 프로필 정보 활용하기</Label>
+                  </div>
+                  {useProfile && (
+                    <div className="text-sm text-gray-600 bg-teal-50 rounded-lg px-4 py-2">
+                      <span>알레르기: {userProfile.allergies.join(', ')}</span>
+                      <span className="mx-2">|</span>
+                      <span>식이: {userProfile.dietaryPreferences.join(', ')}</span>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* 채팅 영역 */}
-        <div className="flex-1 overflow-auto p-4 md:p-6">
+        <div className="flex-1 overflow-auto p-4 md:p-6 pt-12 md:pt-16">
           <div className="max-w-3xl mx-auto">
-            <div className="space-y-6 pb-20">
+            <div className="space-y-6 pb-32">
               {/* 메시지들 */}
               {messages.map((message, index) => (
-                <div 
-                  key={index} 
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div 
-                    className={`max-w-md p-4 rounded-lg ${
-                      message.role === 'user' 
-                        ? 'bg-teal-500 text-white rounded-br-none' 
-                        : 'bg-white shadow rounded-bl-none'
+                  <div
+                    className={`max-w-md px-5 py-3 rounded-2xl shadow-md text-base break-words ${
+                      message.role === 'user'
+                        ? 'bg-gradient-to-tr from-teal-400 via-teal-500 to-teal-600 text-white rounded-br-md'
+                        : 'bg-white text-gray-800 rounded-bl-md border border-teal-100'
                     }`}
                   >
                     {message.content}
                   </div>
-                </div>
+                </motion.div>
               ))}
 
               {/* 생성된 레시피 */}
               {generatedRecipe && (
-                <div className="flex justify-start">
-                  <div className="max-w-md w-full bg-white shadow rounded-lg rounded-bl-none p-4">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: messages.length * 0.05 }}
+                  className="flex justify-start"
+                >
+                  <div className="max-w-md w-full bg-white shadow rounded-2xl rounded-bl-md p-4 border border-teal-100">
                     <ChatRecipeCard recipe={generatedRecipe} />
                     <div className="flex justify-between mt-4">
                       <Button 
@@ -229,19 +236,24 @@ export default function ChatbotPage() {
                       </Link>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               )}
 
               {/* 로딩 표시 */}
               {loading && (
-                <div className="flex justify-start">
-                  <div className="bg-white p-4 rounded-lg shadow rounded-bl-none">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: messages.length * 0.05 + 0.1 }}
+                  className="flex justify-start"
+                >
+                  <div className="bg-white p-4 rounded-2xl shadow rounded-bl-md border border-teal-100">
                     <div className="flex items-center space-x-2">
                       <Loader2 className="h-4 w-4 animate-spin text-teal-500" />
                       <p className="text-sm text-gray-500">레시피를 생성 중입니다...</p>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               )}
 
               {/* 자동 스크롤을 위한 더미 엘리먼트 */}
@@ -250,23 +262,24 @@ export default function ChatbotPage() {
           </div>
         </div>
 
-        {/* 입력 영역 */}
-        <div className="bg-white border-t py-4 px-4 sticky bottom-0">
+        {/* 입력 영역 (fancy) */}
+        <div className="bg-white/90 border-t py-4 px-4 sticky bottom-0 z-30 shadow-[0_-2px_16px_0_rgba(0,0,0,0.04)]">
           <div className="max-w-3xl mx-auto">
-            <form onSubmit={handleSubmit} className="flex space-x-2">
+            <form onSubmit={handleSubmit} className="flex items-center gap-2">
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="레시피에 대해 질문하세요 (예: '소화에 좋은 저녁 메뉴 추천해줘')"
-                className="flex-1"
+                placeholder="AI 요리사에게 무엇이든 물어보세요! 🍳"
+                className="flex-1 rounded-full bg-gray-50 border-none shadow-inner px-5 py-3 text-base focus:ring-2 focus:ring-teal-200"
                 disabled={loading}
+                autoComplete="off"
               />
               <Button 
                 type="submit" 
                 disabled={loading || !input.trim()} 
-                className="bg-teal-500 hover:bg-teal-600 flex-shrink-0"
+                className="rounded-full bg-gradient-to-tr from-teal-400 via-teal-500 to-teal-600 hover:from-teal-500 hover:to-teal-700 shadow-lg w-12 h-12 flex items-center justify-center p-0"
               >
-                <Send className="h-4 w-4" />
+                <Send className="h-5 w-5" />
               </Button>
             </form>
             <p className="mt-2 text-xs text-gray-500 text-center">
@@ -275,6 +288,6 @@ export default function ChatbotPage() {
           </div>
         </div>
       </div>
-    </div>
+    </SidebarLayout>
   );
 } 

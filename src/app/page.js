@@ -1,3 +1,5 @@
+"use client";
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -5,14 +7,24 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/h
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useEffect, useState } from 'react';
 
 export default function Home() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    // 예시: accessToken이 있으면 로그인 상태로 간주
+    if (typeof window !== 'undefined') {
+      setIsLoggedIn(!!localStorage.getItem('accessToken'));
+    }
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* 네비게이션 */}
       <nav className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Link href="/" className="flex items-center space-x-2">
+          <Link href={isLoggedIn ? "/chatbot" : "/"} className="flex items-center space-x-2">
             <span className="text-2xl font-bold bg-gradient-to-r from-primary/90 via-primary to-primary/90 text-transparent bg-clip-text">
               ChiDiet
             </span>
