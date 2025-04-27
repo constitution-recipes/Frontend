@@ -338,15 +338,12 @@ export function SignupForm() {
           </div>
         </div>
 
-        <p className="text-center text-sm text-muted-foreground">
+        <div className="text-center text-sm text-muted-foreground mt-4">
           이미 계정이 있으신가요?{' '}
-          <Link
-            href="/auth/login"
-            className="font-semibold text-primary hover:text-primary/90 transition-colors"
-          >
+          <Link href="/auth/login" className="text-primary hover:underline font-semibold">
             로그인
           </Link>
-        </p>
+        </div>
       </form>
     </div>
   );
