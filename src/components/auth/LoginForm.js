@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Icons } from '@/components/ui/icons';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
+import { authService } from '@/lib/services/authService';
 
 /**
  * 로그인 폼 컴포넌트
@@ -23,8 +24,9 @@ export function LoginForm() {
     setError('');
 
     try {
-      // TODO: Implement actual login logic here
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulated API call
+      const email = event.target.email.value;
+      const password = event.target.password.value;
+      await authService.login(email, password);
       router.push('/chatbot');
     } catch (err) {
       setError('이메일 또는 비밀번호가 올바르지 않습니다.');

@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { authService } from '@/lib/services/authService';
 
 /**
  * 회원가입 폼 컴포넌트
@@ -19,11 +20,15 @@ export function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({
+  // 1단계: 회원가입 정보
+  const [signupData, setSignupData] = useState({
     name: '',
     email: '',
     password: '',
     phoneNumber: '',
+  });
+  // 2단계: 프로필 정보
+  const [profileData, setProfileData] = useState({
     allergies: [],
     healthGoals: [],
     currentHealthStatus: 'average',
@@ -62,34 +67,39 @@ export function SignupForm() {
     { value: 'good', label: '좋음' },
   ];
 
-  const handleChange = (e) => {
+  // 1단계 입력 핸들러
+  const handleSignupChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setSignupData(prev => ({
       ...prev,
       [name]: value
     }));
   };
 
+  // 2단계 입력 핸들러
+  const handleProfileChange = (e) => {
+    const { name, value } = e.target;
+    setProfileData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // 알레르기 변경 핸들러 (2단계)
   const handleAllergyChange = (allergyId) => {
-    setFormData(prev => {
-      // '알레르기 없음' 선택 시
+    setProfileData(prev => {
       if (allergyId === 'none') {
         return {
           ...prev,
           allergies: prev.allergies.includes('none') ? [] : ['none']
         };
       }
-
-      // 이미 '알레르기 없음'이 선택된 상태면 아무 것도 하지 않음
       if (prev.allergies.includes('none')) {
         return prev;
       }
-
-      // 다른 알레르기 선택/해제
       const newAllergies = prev.allergies.includes(allergyId)
         ? prev.allergies.filter(id => id !== allergyId)
         : [...prev.allergies, allergyId];
-
       return {
         ...prev,
         allergies: newAllergies
@@ -97,23 +107,36 @@ export function SignupForm() {
     });
   };
 
+  // 건강목표 변경 핸들러 (2단계)
+  const handleHealthGoalChange = (goalValue) => {
+    setProfileData(prev => {
+      const newGoals = prev.healthGoals.includes(goalValue)
+        ? prev.healthGoals.filter(g => g !== goalValue)
+        : [...prev.healthGoals, goalValue];
+      return {
+        ...prev,
+        healthGoals: newGoals
+      };
+    });
+  };
+
+  // 1단계 유효성 검사
   const validateStep1 = () => {
-    if (!formData.name || !formData.email || !formData.password || !formData.phoneNumber) {
+    if (!signupData.name || !signupData.email || !signupData.password || !signupData.phoneNumber) {
       setError('모든 필드를 입력해주세요.');
       return false;
     }
     return true;
   };
 
-  const handleSubmit = async (e) => {
+  // 1단계: 회원가입
+  const handleSignup = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-
     try {
-      // TODO: Implement actual signup logic here
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulated API call
-      router.push('/recommend_recipes');
+      await authService.signup(signupData);
+      setStep(2); // 다음 단계로 이동
     } catch (err) {
       setError('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
     } finally {
@@ -121,10 +144,28 @@ export function SignupForm() {
     }
   };
 
-  const goToNextStep = () => {
-    if (validateStep1()) {
-      setError('');
-      setStep(2);
+  // 2단계: 프로필 저장
+  const handleProfile = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    // illnesses(혹은 existingConditions)가 비어 있으면 빈 문자열로 보장
+    const payload = {
+      allergies: profileData.allergies,
+      healthGoals: profileData.healthGoals,
+      currentHealthStatus: profileData.currentHealthStatus,
+      existingConditions: profileData.existingConditions || ""
+    };
+    console.log('profileData payload:', payload);
+
+    try {
+      await authService.updateProfile(payload);
+      router.push('/recommend_recipes');
+    } catch (err) {
+      setError('프로필 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -140,14 +181,12 @@ export function SignupForm() {
             : '맞춤형 건강 관리를 위한 정보를 입력해주세요'}
         </p>
       </div>
-
       {error && (
         <Alert variant="destructive" className="text-sm animate-shake">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={step === 1 ? handleSignup : handleProfile} className="space-y-4">
         {step === 1 ? (
           <>
             <div className="space-y-2">
@@ -157,13 +196,12 @@ export function SignupForm() {
                 name="name"
                 type="text"
                 placeholder="이름을 입력하세요"
-                value={formData.name}
-                onChange={handleChange}
+                value={signupData.name}
+                onChange={handleSignupChange}
                 disabled={isLoading}
                 className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="email">이메일</Label>
               <Input
@@ -171,13 +209,12 @@ export function SignupForm() {
                 name="email"
                 type="email"
                 placeholder="name@example.com"
-                value={formData.email}
-                onChange={handleChange}
+                value={signupData.email}
+                onChange={handleSignupChange}
                 disabled={isLoading}
                 className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="password">비밀번호</Label>
               <Input
@@ -185,13 +222,12 @@ export function SignupForm() {
                 name="password"
                 type="password"
                 placeholder="안전한 비밀번호를 입력하세요"
-                value={formData.password}
-                onChange={handleChange}
+                value={signupData.password}
+                onChange={handleSignupChange}
                 disabled={isLoading}
                 className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="phoneNumber">전화번호</Label>
               <Input
@@ -199,20 +235,18 @@ export function SignupForm() {
                 name="phoneNumber"
                 type="tel"
                 placeholder="010-0000-0000"
-                value={formData.phoneNumber}
-                onChange={handleChange}
+                value={signupData.phoneNumber}
+                onChange={handleSignupChange}
                 disabled={isLoading}
                 className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
             </div>
-
             <Button
-              type="button"
+              type="submit"
               className="w-full font-semibold h-11 transition-all duration-200"
-              onClick={goToNextStep}
               disabled={isLoading}
             >
-              다음 단계
+              {isLoading ? '가입 중...' : '다음 단계'}
             </Button>
           </>
         ) : (
@@ -224,7 +258,6 @@ export function SignupForm() {
                   해당되는 알레르기를 모두 선택해주세요.
                 </p>
               </div>
-
               <div className="flex flex-wrap gap-2">
                 {allergyOptions.map((allergy) => (
                   <button
@@ -234,27 +267,25 @@ export function SignupForm() {
                     className={cn(
                       "inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-all",
                       "border hover:bg-accent hover:text-accent-foreground",
-                      formData.allergies.includes(allergy.id)
+                      profileData.allergies.includes(allergy.id)
                         ? "bg-primary text-primary-foreground border-primary"
                         : "bg-background border-input",
-                      allergy.id !== 'none' && formData.allergies.includes('none') && "opacity-50 cursor-not-allowed"
+                      allergy.id !== 'none' && profileData.allergies.includes('none') && "opacity-50 cursor-not-allowed"
                     )}
-                    disabled={isLoading || (allergy.id !== 'none' && formData.allergies.includes('none'))}
+                    disabled={isLoading || (allergy.id !== 'none' && profileData.allergies.includes('none'))}
                   >
                     {allergy.label}
-                    {formData.allergies.includes(allergy.id) && (
+                    {profileData.allergies.includes(allergy.id) && (
                       <span className="ml-1">✓</span>
                     )}
                   </button>
                 ))}
               </div>
-
-              {/* 선택된 알레르기 표시 */}
-              {formData.allergies.length > 0 && !formData.allergies.includes('none') && (
+              {profileData.allergies.length > 0 && !profileData.allergies.includes('none') && (
                 <div className="mt-4 p-4 bg-muted/30 rounded-lg">
                   <p className="text-sm font-medium mb-2">선택된 알레르기:</p>
                   <div className="flex flex-wrap gap-2">
-                    {formData.allergies.map(id => {
+                    {profileData.allergies.map(id => {
                       const allergy = allergyOptions.find(opt => opt.id === id);
                       return (
                         <Badge
@@ -277,14 +308,38 @@ export function SignupForm() {
                 </div>
               )}
             </div>
-
+            <div className="space-y-2">
+              <Label>건강 목표</Label>
+              <div className="flex flex-wrap gap-2">
+                {healthGoalOptions.map(goal => (
+                  <button
+                    key={goal.value}
+                    type="button"
+                    onClick={() => handleHealthGoalChange(goal.value)}
+                    className={cn(
+                      "inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-all",
+                      "border hover:bg-accent hover:text-accent-foreground",
+                      profileData.healthGoals.includes(goal.value)
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background border-input"
+                    )}
+                    disabled={isLoading}
+                  >
+                    {goal.label}
+                    {profileData.healthGoals.includes(goal.value) && (
+                      <span className="ml-1">✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="currentHealthStatus">현재 건강 상태</Label>
               <select
                 id="currentHealthStatus"
                 name="currentHealthStatus"
-                value={formData.currentHealthStatus}
-                onChange={handleChange}
+                value={profileData.currentHealthStatus}
+                onChange={handleProfileChange}
                 disabled={isLoading}
                 className="w-full h-11 rounded-md border border-input bg-background px-3 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               >
@@ -293,7 +348,6 @@ export function SignupForm() {
                 <option value="good">좋음</option>
               </select>
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="existingConditions">현재 질병</Label>
               <Input
@@ -301,13 +355,12 @@ export function SignupForm() {
                 name="existingConditions"
                 type="text"
                 placeholder="현재 겪고 있는 질병이 있다면 입력하세요"
-                value={formData.existingConditions}
-                onChange={handleChange}
+                value={profileData.existingConditions}
+                onChange={handleProfileChange}
                 disabled={isLoading}
                 className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
             </div>
-
             <div className="flex gap-4">
               <Button
                 type="button"
@@ -323,21 +376,16 @@ export function SignupForm() {
                 className="w-full font-semibold h-11 transition-all duration-200"
                 disabled={isLoading}
               >
-                {isLoading && (
-                  <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                {isLoading ? '가입 중...' : '가입 완료'}
+                {isLoading ? '저장 중...' : '가입 완료'}
               </Button>
             </div>
           </>
         )}
-
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-muted"></div>
           </div>
         </div>
-
         <p className="text-center text-sm text-muted-foreground">
           이미 계정이 있으신가요?{' '}
           <Link
