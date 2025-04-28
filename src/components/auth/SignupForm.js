@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { authService } from '@/lib/services/authService';
+import axios from 'axios';
 
 /**
  * 회원가입 폼 컴포넌트
@@ -131,39 +132,61 @@ export function SignupForm() {
 
   // 1단계: 회원가입
   const handleSignup = async (e) => {
+    console.log('handleSignup triggered', signupData);
     e.preventDefault();
-    setIsLoading(true);
     setError('');
+    // 필수 입력값 확인
+    if (!validateStep1()) {
+      return;
+    }
+    setIsLoading(true);
     try {
-      await authService.signup(signupData);
-      setStep(2); // 다음 단계로 이동
-    } catch (err) {
-      setError('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
+      console.log('Checking email existence for:', signupData.email);
+      // 이메일 중복 검사 (authService 사용)
+      const exists = await authService.emailExists(signupData.email);
+      if (exists) {
+        console.log('Email already exists');
+        setError('이미 사용 중인 이메일입니다.');
+        return;
+      }
+      console.log('Email available, moving to next step');
+      // 모든 입력이 정상이고 이메일 중복이 아니면 다음 단계로 이동
+      setStep(2);
+    } catch (error) {
+      console.error('handleSignup error:', error);
+      setError('이메일 확인 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 2단계: 프로필 저장
+  // 2단계: 프로필을 포함한 최종 회원가입
   const handleProfile = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // illnesses(혹은 existingConditions)가 비어 있으면 빈 문자열로 보장
-    const payload = {
+    // 회원가입 기본 정보와 프로필 정보를 합쳐 요청
+    const userData = {
+      name: signupData.name,
+      email: signupData.email,
+      password: signupData.password,
+      phone_number: signupData.phoneNumber,
       allergies: profileData.allergies,
-      healthGoals: profileData.healthGoals,
-      currentHealthStatus: profileData.currentHealthStatus,
-      existingConditions: profileData.existingConditions || ""
+      health_status: profileData.currentHealthStatus,
+      illnesses: profileData.existingConditions || "",
+      health_goals: profileData.healthGoals
     };
-    console.log('profileData payload:', payload);
 
     try {
-      await authService.updateProfile(payload);
+      await authService.signup(userData);
       router.push('/recommend_recipes');
     } catch (err) {
-      setError('프로필 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+      if (err.response?.status === 409) {
+        setError('이미 사용 중인 이메일입니다.');
+      } else {
+        setError('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
+      }
     } finally {
       setIsLoading(false);
     }
