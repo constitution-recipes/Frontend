@@ -275,7 +275,7 @@ export default function ChatbotPage() {
 
         {/* 기존 챗봇 UI: 채팅 시작 후 */}
         {!initialState && (
-          <div className="flex flex-col h-full w-full flex-1 min-h-0">
+          <div className="flex flex-col h-full w-full flex-1 min-h-0 pt-16">
             {/* 옵션 패널 - 모달 */}
             <AnimatePresence>
               {showOptions && (
@@ -361,10 +361,10 @@ export default function ChatbotPage() {
               )}
             </AnimatePresence>
 
-            {/* 채팅 메시지 영역 (스크롤) */}
+            {/* 채팅+입력 전체 영역 */}
             <div className="flex flex-col h-full min-h-0">
-              {/* 채팅 메시지 영역 */}
-              <div className="grow overflow-y-auto min-h-0 w-full p-4 md:p-6 pt-16 md:pt-16" style={{ paddingBottom: '120px' }}>
+              {/* 채팅 메시지 영역 (스크롤) */}
+              <div className="grow overflow-y-auto min-h-0 w-full px-4 md:px-6 pt-4" style={{ paddingBottom: '120px' }}>
                 <div className="max-w-3xl mx-auto">
                   <div className="space-y-6">
                     {/* 메시지들 */}
@@ -457,6 +457,7 @@ export default function ChatbotPage() {
                   </div>
                 </div>
               </div>
+
               {/* 입력 영역 (항상 화면 하단 고정) */}
               <div className="fixed bottom-0 left-0 right-0 md:left-72 bg-card/95 backdrop-blur-sm border-t border-border/40 py-4 px-4 z-40 shadow-[0_-2px_10px_0_rgba(0,0,0,0.05)]">
                 <div className="max-w-3xl mx-auto">

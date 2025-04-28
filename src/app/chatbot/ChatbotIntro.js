@@ -4,7 +4,7 @@ import { Send } from 'lucide-react';
 
 export default function ChatbotIntro({ input, setInput, handleSubmit, featureCards }) {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center min-h-screen w-full bg-gradient-primary transition-colors duration-500 z-30">
+    <div className="absolute inset-0 flex flex-col items-center justify-center min-h-screen w-full bg-gradient-primary transition-colors duration-500 z-30 pt-16">
       <div className="w-full max-w-md px-4 flex flex-col items-center">
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-primary to-green-300 flex items-center justify-center shadow-lg mb-3">
