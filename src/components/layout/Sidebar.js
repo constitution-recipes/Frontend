@@ -2,119 +2,137 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { 
-  Home, 
-  Heart, 
-  User, 
-  MessageSquare, 
-  ChefHat, 
-  LogOut, 
-  Menu 
+  Plus,
+  History,
+  FileText,
+  MessageSquare,
+  ChevronDown
 } from 'lucide-react';
-import { Sheet, SheetTrigger, SheetContent } from '@/components/ui/sheet';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get('session') || 'default';
+  const [expandHistory, setExpandHistory] = useState(true);
   const [mounted, setMounted] = useState(false);
 
-  // 클라이언트 사이드에서만 pathname을 사용하기 위한 처리
+  // 클라이언트 사이드에서만 로컬스토리지 접근
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // 홈, 로그인, 회원가입 페이지에서는 사이드바를 숨김
-  if (!mounted || pathname === '/' || pathname.startsWith('/auth')) {
-    return null;
-  }
-
-  // 메뉴 리스트
-  const menus = [
-    {
-      name: '맞춤 레시피',
-      icon: ChefHat,
-      href: '/recommend_recipes',
-      active: pathname === '/recommend_recipes'
-    },
-    {
-      name: '저장함',
-      icon: Heart,
-      href: '/saved',
-      active: pathname === '/saved'
-    },
-    {
-      name: '프로필',
-      icon: User,
-      href: '/profile',
-      active: pathname === '/profile'
-    },
-    {
-      name: '챗봇',
-      icon: MessageSquare,
-      href: '/chatbot',
-      active: pathname === '/chatbot'
-    }
-  ];
-
-  // 모바일 Sheet용 사이드바 내용
-  const SidebarContent = (
-    <div className="flex flex-col h-full">
-      <div className="p-5 border-b border-gray-200">
-        <Link href="/chatbot" className="flex items-center space-x-2">
-          <span className="text-2xl font-bold text-teal-500">ChiDiet</span>
-        </Link>
-      </div>
-      <nav className="flex-1 px-3 py-5 space-y-1">
-        {menus.map((menu) => (
-          <Link
-            href={menu.href}
-            key={menu.name}
-            className={`flex items-center px-4 py-3 rounded-lg ${
-              menu.active 
-                ? 'bg-teal-50 text-teal-600 font-medium' 
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-            }`}
-          >
-            <menu.icon className={`h-5 w-5 ${menu.active ? 'text-teal-500' : 'text-gray-500'}`} />
-            <span className="ml-4">{menu.name}</span>
-            {menu.name === '저장함' && (
-              <span className="ml-auto bg-teal-100 text-teal-600 text-xs py-0.5 px-2 rounded-full">
-                {typeof window !== 'undefined' ? 
-                  JSON.parse(localStorage.getItem('savedRecipes') || '[]').length : 0}
-              </span>
-            )}
-          </Link>
-        ))}
-      </nav>
-      <div className="p-4 border-t border-gray-200">
-        <button className="flex items-center px-4 py-3 w-full text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-lg">
-          <LogOut className="h-5 w-5 text-gray-500" />
-          <span className="ml-4">로그아웃</span>
-        </button>
-      </div>
-    </div>
-  );
+  // 저장된 채팅 세션 가져오기
+  const chatSessions = mounted && typeof window !== 'undefined' 
+    ? JSON.parse(localStorage.getItem('chatSessions') || '[]') 
+    : [];
 
   return (
-    <>
-      {/* 모바일 햄버거 버튼 */}
-      <div className="md:hidden fixed top-4 left-4 z-30">
-        <Sheet>
-          <SheetTrigger asChild>
-            <button className="p-2 rounded-md bg-white border shadow-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-400">
-              <Menu className="h-6 w-6" />
-              <span className="sr-only">메뉴 열기</span>
-            </button>
-          </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-64 max-w-full">
-            {SidebarContent}
-          </SheetContent>
-        </Sheet>
+    <div className="flex flex-col h-full bg-gradient-to-br from-white to-primary/5 dark:from-gray-900 dark:to-primary/20">
+      {/* 로고 영역 */}
+      <div className="p-5 border-b border-border/40 flex items-center justify-center">
+        <Link href="/chatbot" className="flex items-center">
+          <MessageSquare className="h-6 w-6 mr-2 text-primary" />
+          <span className="text-xl font-bold text-gradient bg-gradient-to-r from-primary to-secondary">ChiDiet 챗봇</span>
+        </Link>
       </div>
-      {/* PC 사이드바 */}
-      <aside className="hidden md:flex flex-col w-64 min-h-screen bg-white border-r border-gray-200 fixed left-0 top-0 z-10">
-        {SidebarContent}
-      </aside>
-    </>
+      
+      <div className="flex-1 py-6 px-4 overflow-hidden flex flex-col">
+        {/* 새 채팅 버튼 */}
+        <div className="mb-6">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="flex items-center justify-center w-full py-3 px-4 bg-primary text-primary-foreground rounded-lg font-medium transition-all hover:bg-primary/90 shadow-sm"
+            onClick={() => {
+              const newId = Date.now().toString();
+              window.location.href = `/chatbot?session=${newId}`;
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            <span>새 채팅</span>
+          </motion.button>
+        </div>
+        
+        {/* 채팅 히스토리 섹션 */}
+        <div className="space-y-1">
+          <button 
+            onClick={() => setExpandHistory(!expandHistory)} 
+            className="flex items-center justify-between w-full py-2 px-3 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors rounded-lg hover:bg-primary/5"
+          >
+            <div className="flex items-center">
+              <History className="h-4 w-4 mr-3 text-primary/70" />
+              <span>채팅 기록</span>
+            </div>
+            <ChevronDown 
+              className={`h-4 w-4 transition-transform duration-200 ${expandHistory ? 'rotate-180' : ''}`}
+            />
+          </button>
+          
+          <AnimatePresence>
+            {expandHistory && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="max-h-[calc(100vh-240px)] overflow-y-auto pr-2 space-y-1 pl-4 mt-1">
+                  {chatSessions.length > 0 ? (
+                    chatSessions.map((s) => (
+                      <Link
+                        key={s.id}
+                        href={`/chatbot?session=${s.id}`}
+                        className={`flex items-center group py-2 px-3 rounded-lg text-sm transition-colors ${
+                          pathname === `/chatbot` && sessionId === s.id
+                            ? 'bg-primary/10 text-primary' 
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                        }`}
+                      >
+                        <FileText className="h-4 w-4 mr-3 flex-shrink-0" />
+                        <span className="truncate">
+                          {s.title || `채팅 ${s.id.slice(-4)}`}
+                        </span>
+                      </Link>
+                    ))
+                  ) : (
+                    <div className="py-8 flex flex-col items-center justify-center text-center px-4">
+                      <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                        <MessageSquare className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-1">채팅 기록이 없습니다</p>
+                      <p className="text-xs text-muted-foreground/70">새 채팅 버튼을 눌러 대화를 시작해보세요</p>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+      
+      {/* 하단 옵션 버튼 */}
+      <div className="px-4 pb-2">
+        <button
+          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-muted hover:bg-primary/10 text-foreground text-sm font-medium transition-colors border border-border/30 mb-2"
+          onClick={() => {
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new Event('openChatOptions'));
+            }
+          }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6l4 2" /></svg>
+          <span>옵션</span>
+        </button>
+      </div>
+      {/* 하단 정보 영역 */}
+      <div className="p-4 text-center text-xs text-muted-foreground border-t border-border/40">
+        <p>© 2023 ChiDiet</p>
+        <p className="mt-1">한의학 기반 맞춤형 식단 제안 서비스</p>
+      </div>
+    </div>
   );
 } 

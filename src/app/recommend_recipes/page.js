@@ -14,6 +14,9 @@ import { Filter, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { dummyRecipes } from '@/lib/dummy-data';
 import SidebarLayout from '@/components/layout/SidebarLayout';
+import { motion } from 'framer-motion';
+import { Check, ChevronDown, Search, Clock, Utensils, User } from 'lucide-react';
+import Link from 'next/link';
 
 export default function RecommendRecipesPage() {
   const [recipes, setRecipes] = useState([]);
@@ -31,6 +34,9 @@ export default function RecommendRecipesPage() {
     bodyTypeMatch: true
   });
 
+  const [activeFilter, setActiveFilter] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
   useEffect(() => {
     // 더미 데이터 로드
     setRecipes(dummyRecipes);
@@ -42,19 +48,19 @@ export default function RecommendRecipesPage() {
 
   useEffect(() => {
     applyFilters();
-  }, [searchTerm, filters, recipes]);
+  }, [searchQuery, filters, recipes]);
 
   const applyFilters = () => {
     let results = [...recipes];
     const activeFiltersList = [];
     
     // 검색어 필터링
-    if (searchTerm) {
+    if (searchQuery) {
       results = results.filter(recipe => 
-        recipe.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        recipe.description.toLowerCase().includes(searchTerm.toLowerCase())
+        recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        recipe.description.toLowerCase().includes(searchQuery.toLowerCase())
       );
-      activeFiltersList.push(`검색: ${searchTerm}`);
+      activeFiltersList.push(`검색: ${searchQuery}`);
     }
     
     // 조리 시간 필터링
@@ -104,7 +110,7 @@ export default function RecommendRecipesPage() {
 
   const handleRemoveFilter = (filterToRemove) => {
     if (filterToRemove.startsWith('검색:')) {
-      setSearchTerm('');
+      setSearchQuery('');
     } else if (filterToRemove.startsWith('조리시간:')) {
       setFilters({...filters, cookingTime: [0, 60]});
     } else if (filterToRemove.startsWith('식사유형:')) {
@@ -119,7 +125,7 @@ export default function RecommendRecipesPage() {
   };
 
   const resetFilters = () => {
-    setSearchTerm('');
+    setSearchQuery('');
     setFilters({
       cookingTime: [0, 60],
       mealType: [],
@@ -158,224 +164,298 @@ export default function RecommendRecipesPage() {
     setFilters({...filters, bodyTypeMatch: !filters.bodyTypeMatch});
   };
 
+  const toggleFilter = () => {
+    setActiveFilter(!activeFilter);
+  };
+
+  const handleFilterChange = (category, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [category]: value
+    }));
+  };
+
+  const handleCheckboxChange = (category, value) => {
+    setFilters(prev => {
+      const currentValues = prev[category];
+      if (currentValues.includes(value)) {
+        return {
+          ...prev,
+          [category]: currentValues.filter(item => item !== value)
+        };
+      } else {
+        return {
+          ...prev,
+          [category]: [...currentValues, value]
+        };
+      }
+    });
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  // 레시피 저장 토글
+  const toggleSave = (recipeId) => {
+    // 실제 구현에서는 API 호출 등으로 저장/삭제 처리
+    console.log(`Toggle save for recipe ${recipeId}`);
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { 
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { 
+      y: 0, 
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 260,
+        damping: 20
+      }
+    }
+  };
+
   return (
     <SidebarLayout>
-      <div className="container mx-auto py-8 px-4">
-        <h1 className="text-3xl font-bold mb-8 text-center">맞춤 레시피</h1>
-        
-        {/* 검색 및 필터 섹션 */}
-        <div className="mb-8 flex flex-col md:flex-row gap-4">
-          <div className="relative w-full md:w-2/3">
-            <Input
-              type="text"
-              placeholder="레시피 또는 재료 검색..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-4 pr-10"
-            />
-            {searchTerm && (
-              <button 
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                onClick={() => setSearchTerm('')}
+      <div className="py-8 px-4">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="text-center mb-12">
+              <h1 className="text-3xl md:text-4xl font-bold mb-4">맞춤 레시피</h1>
+              <p className="text-muted-foreground max-w-3xl mx-auto">
+                당신의 체질과 건강 상태에 맞게 개인화된 레시피를 추천해 드립니다. 
+                원하는 재료, 조리 시간, 난이도 등을 선택하여 더 정확한 맞춤형 레시피를 찾아보세요.
+              </p>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+              <div className="relative flex-grow">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <Input
+                  type="text"
+                  placeholder="레시피 검색..."
+                  className="pl-10"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                />
+              </div>
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2"
+                onClick={toggleFilter}
               >
-                <X size={16} />
-              </button>
-            )}
-          </div>
-          
-          <div className="w-full md:w-1/3 flex gap-2">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" className="w-full flex items-center gap-2">
-                  <Filter size={16} />
-                  필터
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="overflow-y-auto">
-                <SheetHeader>
-                  <SheetTitle>레시피 필터</SheetTitle>
-                  <SheetDescription>
-                    원하는 조건으로 레시피를 필터링하세요
-                  </SheetDescription>
-                </SheetHeader>
-                
-                <div className="py-6 space-y-6">
-                  {/* 체질 맞춤 필터 */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="body-type-match" className="text-base font-semibold">내 체질 맞춤 레시피</Label>
-                      <Checkbox 
-                        id="body-type-match" 
-                        checked={filters.bodyTypeMatch}
-                        onCheckedChange={toggleBodyTypeMatch}
-                      />
-                    </div>
-                    {bodyType && (
-                      <p className="text-sm text-gray-500">현재 체질: {bodyType}</p>
-                    )}
-                  </div>
-                  
-                  {/* 조리 시간 필터 */}
-                  <div className="space-y-4">
-                    <div>
-                      <Label className="text-base font-semibold">조리 시간</Label>
-                      <p className="text-sm text-gray-500">
-                        {filters.cookingTime[0]}분 - {filters.cookingTime[1] === 60 ? '60+' : filters.cookingTime[1]}분
-                      </p>
-                    </div>
-                    <Slider
-                      defaultValue={[0, 60]}
-                      value={filters.cookingTime}
-                      min={0}
-                      max={60}
-                      step={5}
-                      onValueChange={handleCookingTimeChange}
-                      className="my-4"
-                    />
-                  </div>
-                  
-                  {/* 식사 유형 필터 */}
-                  <div className="space-y-3">
-                    <Label className="text-base font-semibold">식사 유형</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {['아침', '점심', '저녁', '간식', '디저트'].map(type => (
-                        <div key={type} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={`meal-type-${type}`} 
-                            checked={filters.mealType.includes(type)}
-                            onCheckedChange={() => handleMealTypeChange(type)}
-                          />
-                          <Label htmlFor={`meal-type-${type}`} className="text-sm">{type}</Label>
-                        </div>
+                <Filter className="h-4 w-4" />
+                필터
+                <ChevronDown className={`h-4 w-4 transition-transform ${activeFilter ? 'rotate-180' : ''}`} />
+              </Button>
+            </div>
+
+            {/* 필터 패널 */}
+            {activeFilter && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="mb-8 p-4 rounded-lg border border-border/40 bg-card"
+              >
+                <Tabs defaultValue="category">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="category">카테고리</TabsTrigger>
+                    <TabsTrigger value="time">조리시간</TabsTrigger>
+                    <TabsTrigger value="difficulty">난이도</TabsTrigger>
+                    <TabsTrigger value="bodyType">체질</TabsTrigger>
+                    <TabsTrigger value="ingredients">재료</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="category">
+                    <div className="flex flex-wrap gap-2">
+                      {['전체', '한식', '중식', '일식', '양식', '디저트', '음료'].map((category) => (
+                        <button
+                          key={category}
+                          onClick={() => handleFilterChange('category', category)}
+                          className={`px-4 py-2 rounded-full text-sm transition-colors ${
+                            filters.category === category 
+                              ? 'bg-primary text-white' 
+                              : 'bg-muted hover:bg-muted/80 text-foreground/80'
+                          }`}
+                        >
+                          {category}
+                        </button>
                       ))}
                     </div>
-                  </div>
-                  
-                  {/* 주요 재료 필터 */}
-                  <div className="space-y-3">
-                    <Label className="text-base font-semibold">주요 재료</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {['쌀', '밀가루', '고기', '생선', '채소', '과일', '유제품'].map(ingredient => (
+                  </TabsContent>
+
+                  <TabsContent value="time">
+                    <div className="flex flex-wrap gap-2">
+                      {['전체', '15분 이내', '30분 이내', '1시간 이내', '1시간 이상'].map((time) => (
+                        <button
+                          key={time}
+                          onClick={() => handleFilterChange('time', time)}
+                          className={`px-4 py-2 rounded-full text-sm transition-colors ${
+                            filters.time === time 
+                              ? 'bg-primary text-white' 
+                              : 'bg-muted hover:bg-muted/80 text-foreground/80'
+                          }`}
+                        >
+                          {time}
+                        </button>
+                      ))}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="difficulty">
+                    <div className="flex flex-wrap gap-2">
+                      {['전체', '쉬움', '중간', '어려움'].map((difficulty) => (
+                        <button
+                          key={difficulty}
+                          onClick={() => handleFilterChange('difficulty', difficulty)}
+                          className={`px-4 py-2 rounded-full text-sm transition-colors ${
+                            filters.difficulty === difficulty 
+                              ? 'bg-primary text-white' 
+                              : 'bg-muted hover:bg-muted/80 text-foreground/80'
+                          }`}
+                        >
+                          {difficulty}
+                        </button>
+                      ))}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="bodyType">
+                    <div className="flex flex-wrap gap-2">
+                      {['태양체질', '태음체질', '소양체질', '소음체질'].map((type) => (
+                        <button
+                          key={type}
+                          onClick={() => handleFilterChange('bodyType', type)}
+                          className={`px-4 py-2 rounded-full text-sm transition-colors ${
+                            filters.bodyType === type 
+                              ? 'bg-primary text-white' 
+                              : 'bg-muted hover:bg-muted/80 text-foreground/80'
+                          }`}
+                        >
+                          {type}
+                        </button>
+                      ))}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="ingredients">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                      {['육류', '해산물', '채소', '과일', '유제품', '견과류'].map((ingredient) => (
                         <div key={ingredient} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={`ingredient-${ingredient}`} 
+                          <input
+                            type="checkbox"
+                            id={`ingredient-${ingredient}`}
                             checked={filters.ingredients.includes(ingredient)}
-                            onCheckedChange={() => handleIngredientChange(ingredient)}
+                            onChange={() => handleCheckboxChange('ingredients', ingredient)}
+                            className="rounded border-border/40 text-primary focus:ring-primary/30"
                           />
-                          <Label htmlFor={`ingredient-${ingredient}`} className="text-sm">{ingredient}</Label>
+                          <Label htmlFor={`ingredient-${ingredient}`}>{ingredient}</Label>
                         </div>
                       ))}
                     </div>
-                  </div>
-                  
-                  {/* 난이도 필터 */}
-                  <div className="space-y-3">
-                    <Label className="text-base font-semibold">난이도</Label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {['쉬움', '보통', '어려움'].map(difficulty => (
-                        <div key={difficulty} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={`difficulty-${difficulty}`} 
-                            checked={filters.difficulty.includes(difficulty)}
-                            onCheckedChange={() => handleDifficultyChange(difficulty)}
-                          />
-                          <Label htmlFor={`difficulty-${difficulty}`} className="text-sm">{difficulty}</Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <Button onClick={resetFilters} variant="outline" className="w-full">
-                    필터 초기화
-                  </Button>
-                </div>
-              </SheetContent>
-            </Sheet>
+                  </TabsContent>
+                </Tabs>
+              </motion.div>
+            )}
+
+            {/* 활성화된 필터 표시 */}
+            {activeFilters.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 mb-6">
+                <span className="text-sm text-gray-500">활성 필터:</span>
+                {activeFilters.map((filter, index) => (
+                  <Badge key={index} variant="outline" className="flex items-center gap-1">
+                    {filter}
+                    <button
+                      onClick={() => handleRemoveFilter(filter)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <X size={14} />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
             
-            <Button onClick={resetFilters} variant="ghost" size="icon">
-              <X size={16} />
-            </Button>
-          </div>
+            {/* 결과 탭 */}
+            <Tabs defaultValue="all" className="w-full">
+              <TabsList className="w-full max-w-md mx-auto grid grid-cols-3 mb-8">
+                <TabsTrigger value="all">전체 ({filteredRecipes.length})</TabsTrigger>
+                <TabsTrigger value="bodyType">체질 맞춤 ({filteredRecipes.filter(r => r.suitableBodyTypes.includes(bodyType)).length})</TabsTrigger>
+                <TabsTrigger value="trending">인기 레시피 ({filteredRecipes.filter(r => r.trending).length})</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="all">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredRecipes.length > 0 ? (
+                    filteredRecipes.map(recipe => (
+                      <RecipeCard key={recipe.id} recipe={recipe} bodyType={bodyType} />
+                    ))
+                  ) : (
+                    <div className="col-span-3 text-center py-12">
+                      <h3 className="text-lg text-gray-500 mb-2">검색 결과가 없습니다.</h3>
+                      <p className="text-gray-400 mb-4">다른 검색어나 필터를 사용해보세요.</p>
+                      <Button onClick={resetFilters} variant="outline">필터 초기화</Button>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="bodyType">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredRecipes.filter(r => r.suitableBodyTypes.includes(bodyType)).length > 0 ? (
+                    filteredRecipes
+                      .filter(r => r.suitableBodyTypes.includes(bodyType))
+                      .map(recipe => (
+                        <RecipeCard key={recipe.id} recipe={recipe} bodyType={bodyType} />
+                      ))
+                  ) : (
+                    <div className="col-span-3 text-center py-12">
+                      <h3 className="text-lg text-gray-500 mb-2">체질 맞춤 레시피가 없습니다.</h3>
+                      <p className="text-gray-400 mb-4">다른 필터를 사용해보세요.</p>
+                      <Button onClick={resetFilters} variant="outline">필터 초기화</Button>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="trending">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredRecipes.filter(r => r.trending).length > 0 ? (
+                    filteredRecipes
+                      .filter(r => r.trending)
+                      .map(recipe => (
+                        <RecipeCard key={recipe.id} recipe={recipe} bodyType={bodyType} />
+                      ))
+                  ) : (
+                    <div className="col-span-3 text-center py-12">
+                      <h3 className="text-lg text-gray-500 mb-2">인기 레시피가 없습니다.</h3>
+                      <p className="text-gray-400 mb-4">다른 필터를 사용해보세요.</p>
+                      <Button onClick={resetFilters} variant="outline">필터 초기화</Button>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </motion.div>
         </div>
-        
-        {/* 활성화된 필터 표시 */}
-        {activeFilters.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 mb-6">
-            <span className="text-sm text-gray-500">활성 필터:</span>
-            {activeFilters.map((filter, index) => (
-              <Badge key={index} variant="outline" className="flex items-center gap-1">
-                {filter}
-                <button
-                  onClick={() => handleRemoveFilter(filter)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X size={14} />
-                </button>
-              </Badge>
-            ))}
-          </div>
-        )}
-        
-        {/* 결과 탭 */}
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="w-full max-w-md mx-auto grid grid-cols-3 mb-8">
-            <TabsTrigger value="all">전체 ({filteredRecipes.length})</TabsTrigger>
-            <TabsTrigger value="bodyType">체질 맞춤 ({filteredRecipes.filter(r => r.suitableBodyTypes.includes(bodyType)).length})</TabsTrigger>
-            <TabsTrigger value="trending">인기 레시피 ({filteredRecipes.filter(r => r.trending).length})</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="all">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredRecipes.length > 0 ? (
-                filteredRecipes.map(recipe => (
-                  <RecipeCard key={recipe.id} recipe={recipe} bodyType={bodyType} />
-                ))
-              ) : (
-                <div className="col-span-3 text-center py-12">
-                  <h3 className="text-lg text-gray-500 mb-2">검색 결과가 없습니다.</h3>
-                  <p className="text-gray-400 mb-4">다른 검색어나 필터를 사용해보세요.</p>
-                  <Button onClick={resetFilters} variant="outline">필터 초기화</Button>
-                </div>
-              )}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="bodyType">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredRecipes.filter(r => r.suitableBodyTypes.includes(bodyType)).length > 0 ? (
-                filteredRecipes
-                  .filter(r => r.suitableBodyTypes.includes(bodyType))
-                  .map(recipe => (
-                    <RecipeCard key={recipe.id} recipe={recipe} bodyType={bodyType} />
-                  ))
-              ) : (
-                <div className="col-span-3 text-center py-12">
-                  <h3 className="text-lg text-gray-500 mb-2">체질 맞춤 레시피가 없습니다.</h3>
-                  <p className="text-gray-400 mb-4">다른 필터를 사용해보세요.</p>
-                  <Button onClick={resetFilters} variant="outline">필터 초기화</Button>
-                </div>
-              )}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="trending">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredRecipes.filter(r => r.trending).length > 0 ? (
-                filteredRecipes
-                  .filter(r => r.trending)
-                  .map(recipe => (
-                    <RecipeCard key={recipe.id} recipe={recipe} bodyType={bodyType} />
-                  ))
-              ) : (
-                <div className="col-span-3 text-center py-12">
-                  <h3 className="text-lg text-gray-500 mb-2">인기 레시피가 없습니다.</h3>
-                  <p className="text-gray-400 mb-4">다른 필터를 사용해보세요.</p>
-                  <Button onClick={resetFilters} variant="outline">필터 초기화</Button>
-                </div>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
       </div>
     </SidebarLayout>
   );
