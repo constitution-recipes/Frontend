@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 
 export function RecipeCard({ recipe }) {
-  const { id, title, description, difficulty, prepTime, cookTime, image, rating, suitableFor, tags } = recipe;
+  const { id, title, description, difficulty, cookTime, image, rating, suitableFor, tags } = recipe;
   const [isSaved, setIsSaved] = useState(false);
   
   // 마운트 시 localStorage에서 저장 여부 확인
@@ -76,7 +76,7 @@ export function RecipeCard({ recipe }) {
             {difficulty}
           </span>
           <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-            조리 {parseInt(cookTime) + parseInt(prepTime.replace(/\D/g, ''))}분
+            조리 {cookTime}
           </span>
         </div>
 
@@ -84,10 +84,6 @@ export function RecipeCard({ recipe }) {
         <p className="text-gray-600 text-sm mb-3 line-clamp-2">{description}</p>
 
         <div className="flex items-center text-sm text-gray-500 mb-3">
-          <div className="flex items-center mr-3">
-            <Clock size={14} className="mr-1" />
-            <span>준비 {prepTime}</span>
-          </div>
           <div className="flex items-center">
             <ChefHat size={14} className="mr-1" />
             <span>조리 {cookTime}</span>

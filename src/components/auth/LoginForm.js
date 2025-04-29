@@ -34,12 +34,7 @@ export function LoginForm() {
     setError('');
 
     try {
-      const email = event.target.email.value;
-      const password = event.target.password.value;
-      await authService.login(email, password);
-      // TODO: Implement actual login logic here
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulated API call
-      console.log('Login attempt with:', data);
+      await authService.login(data.email, data.password);
       router.push('/chatbot');
     } catch (err) {
       setError('이메일 또는 비밀번호가 올바르지 않습니다.');

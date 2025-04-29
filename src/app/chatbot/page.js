@@ -111,52 +111,30 @@ export default function ChatbotPage() {
     setMessages(updated);
     setInput('');
     setLoading(true);
-    
+
     // 입력 전 상태에서 메시지 전송 시 상태 변경
     if (initialState) setInitialState(false);
-    
-    // 세션 저장
-    if (typeof window !== 'undefined') {
-      let sessions = JSON.parse(localStorage.getItem('chatSessions') || '[]');
-      const idx = sessions.findIndex(s => s.id === sessionId);
-      if (idx > -1) sessions[idx].messages = updated;
-      else sessions.push({ id: sessionId, messages: updated });
-      localStorage.setItem('chatSessions', JSON.stringify(sessions));
-    }
-    
-    setTimeout(() => {
-      if (updated.length >= 4) {
-        setGeneratedRecipe(dummyRecipes[0]);
-        const newMessages = [
-          ...updated,
-          { role: 'assistant', content: '요청하신 내용을 바탕으로 레시피를 만들었습니다. 체질에 맞게 조정된 토마토 수프 레시피입니다. 어떠신가요?' }
-        ];
-        setMessages(newMessages);
-        // 세션 저장
-        if (typeof window !== 'undefined') {
-          let sessions = JSON.parse(localStorage.getItem('chatSessions') || '[]');
-          const idx = sessions.findIndex(s => s.id === sessionId);
-          if (idx > -1) sessions[idx].messages = newMessages;
-          else sessions.push({ id: sessionId, messages: newMessages });
-          localStorage.setItem('chatSessions', JSON.stringify(sessions));
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/chat`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: updated }),
         }
-      } else {
-        const newMessages = [
-          ...updated,
-          { role: 'assistant', content: '더 구체적으로 알려주세요. 어떤 재료나 음식을 좋아하시나요? 특별한 요구사항이 있으신가요?' }
-        ];
-        setMessages(newMessages);
-        // 세션 저장
-        if (typeof window !== 'undefined') {
-          let sessions = JSON.parse(localStorage.getItem('chatSessions') || '[]');
-          const idx = sessions.findIndex(s => s.id === sessionId);
-          if (idx > -1) sessions[idx].messages = newMessages;
-          else sessions.push({ id: sessionId, messages: newMessages });
-          localStorage.setItem('chatSessions', JSON.stringify(sessions));
-        }
-      }
+      );
+      if (!res.ok) throw new Error('API error');
+      const data = await res.json();
+      setMessages([...updated, { role: 'assistant', content: data.message }]);
+    } catch (err) {
+      setMessages([
+        ...updated,
+        { role: 'assistant', content: '오류가 발생했습니다. 나중에 다시 시도해주세요.' },
+      ]);
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   // 페이지 첫 진입 시(세션이 'default'일 때) 항상 인트로 상태로 초기화

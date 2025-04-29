@@ -94,11 +94,6 @@ export default function RecipeDetailClient({ recipe }) {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-8">
             <div className="flex flex-col items-center p-3 bg-gray-50 rounded-lg">
               <Clock size={24} className="text-teal-500 mb-1" />
-              <span className="text-xs text-gray-500">준비 시간</span>
-              <span className="font-medium">{recipe.prepTime}</span>
-            </div>
-            <div className="flex flex-col items-center p-3 bg-gray-50 rounded-lg">
-              <ChefHat size={24} className="text-teal-500 mb-1" />
               <span className="text-xs text-gray-500">조리 시간</span>
               <span className="font-medium">{recipe.cookTime}</span>
             </div>
@@ -111,6 +106,11 @@ export default function RecipeDetailClient({ recipe }) {
               <Star size={24} className="text-yellow-500 mb-1" />
               <span className="text-xs text-gray-500">평점</span>
               <span className="font-medium">{recipe.rating.toFixed(1)}</span>
+            </div>
+            <div className="flex flex-col items-center p-3 bg-gray-50 rounded-lg">
+              <ChefHat size={24} className="text-teal-500 mb-1" />
+              <span className="text-xs text-gray-500">난이도</span>
+              <span className="font-medium">{recipe.difficulty}</span>
             </div>
           </div>
           <div className="mb-8">

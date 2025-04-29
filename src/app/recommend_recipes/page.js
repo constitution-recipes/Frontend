@@ -66,8 +66,8 @@ export default function RecommendRecipesPage() {
     // 조리 시간 필터링
     if (filters.cookingTime[1] < 60) {
       results = results.filter(recipe => 
-        recipe.cookingTime >= filters.cookingTime[0] && 
-        recipe.cookingTime <= filters.cookingTime[1]
+        recipe.cookTime >= filters.cookingTime[0] && 
+        recipe.cookTime <= filters.cookingTime[1]
       );
       activeFiltersList.push(`조리시간: ${filters.cookingTime[0]}~${filters.cookingTime[1]}분`);
     }

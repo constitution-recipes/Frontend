@@ -5,7 +5,7 @@ import Cookies from 'js-cookie';
 import qs from 'qs';
 
 // API URL 설정
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://34.47.77.55:1492';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const AUTH_COOKIE_NAME = process.env.NEXT_PUBLIC_AUTH_COOKIE_NAME || 'auth_token';
 
 /**
@@ -48,7 +48,7 @@ export const authService = {
   async login(email, password) {
     try {
       const response = await axios.post(
-        `${API_URL}/auth/login`,
+        `${API_URL}/api/v1/users/login`,
         qs.stringify({ username: email, password }),
         {
           headers: {

@@ -5,7 +5,7 @@ import { authService } from './authService';
 import { UserModel } from '../models/userModel';
 
 // API URL 설정
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 /**
  * API 요청에 인증 헤더 추가
