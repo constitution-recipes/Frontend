@@ -102,6 +102,21 @@ export default function ChatbotPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, generatedRecipe]);
 
+  // 응답 처리: JSON 레시피 데이터일 경우 카드 렌더링, 아니면 일반 대화
+  function processResponse(rawMessage, currentMessages) {
+    try {
+      const cleaned = rawMessage.trim().replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+      const parsed = JSON.parse(cleaned);
+      const arr = Array.isArray(parsed) ? parsed : [parsed];
+      if (arr.length > 0 && arr[0]?.id) {
+        setGeneratedRecipe(arr[0]);
+        return;
+      }
+    } catch {}
+    // JSON이 아니거나 id 필드가 없으면 일반 대화로
+    setMessages([...currentMessages, { role: 'assistant', content: rawMessage }]);
+  }
+
   // 메시지 제출 처리
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -111,22 +126,26 @@ export default function ChatbotPage() {
     setMessages(updated);
     setInput('');
     setLoading(true);
+    setGeneratedRecipe(null);
 
     // 입력 전 상태에서 메시지 전송 시 상태 변경
     if (initialState) setInitialState(false);
 
+    console.log('handleSubmit payload:', { session_id: sessionId, messages: updated });
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/chat`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: updated }),
+          body: JSON.stringify({ session_id: sessionId, messages: updated }),
         }
       );
+      console.log('handleSubmit response raw:', res);
       if (!res.ok) throw new Error('API error');
-      const data = await res.json();
-      setMessages([...updated, { role: 'assistant', content: data.message }]);
+      const { message: rawMessage } = await res.json();
+      console.log('handleSubmit response json:', rawMessage);
+      processResponse(rawMessage, updated);
     } catch (err) {
       setMessages([
         ...updated,
@@ -171,63 +190,61 @@ export default function ChatbotPage() {
     // 실제 구현에서는 API 호출
   };
 
-  // 기능 카드 데이터
+  // 기능별 챗봇 호출 함수
+  const handleFeatureClick = async (featureKey, featureTitle) => {
+    const sysMsg = { role: 'system', content: `${featureTitle} 기능이 선택되었습니다.` };
+    const updatedMsgs = [...messages, sysMsg];
+    setMessages(updatedMsgs);
+    setLoading(true);
+    setGeneratedRecipe(null);
+
+    try {
+      console.log('handleFeatureClick payload:', { session_id: sessionId, feature: featureKey, messages: updatedMsgs });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/chat`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId, feature: featureKey, messages: updatedMsgs }),
+        }
+      );
+      console.log('handleFeatureClick response raw:', res);
+      if (!res.ok) throw new Error('API error');
+      const { message: rawMessage } = await res.json();
+      console.log('handleFeatureClick response json:', rawMessage);
+      processResponse(rawMessage, updatedMsgs);
+    } catch (err) {
+      setMessages([...updatedMsgs, { role: 'assistant', content: '오류가 발생했습니다. 나중에 다시 시도해주세요.' }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 4가지 기능 카드 데이터
   const featureCards = [
-    { 
-      title: 'AI 대화', 
-      description: 'AI와 자유롭게 대화해보세요.', 
-      icon: <MessageSquare className="w-6 h-6 text-primary" strokeWidth={1.5} />, 
-      onClick: () => setInput('AI 대화 시작'), 
-      bgClass: 'from-primary/10 to-primary/5'
+    {
+      title: '레시피 변경',
+      description: '알레르기·선호·상황에 맞춰 레시피 커스터마이즈',
+      icon: <ChefHat className="w-6 h-6 text-primary" strokeWidth={1.5} />,
+      onClick: () => handleFeatureClick('customize', '레시피 커스터마이즈'),
     },
-    { 
-      title: '맞춤형 레시피', 
-      description: '나에게 맞는 레시피를 추천해드립니다.', 
-      icon: <ChefHat className="w-6 h-6 text-orange-500" strokeWidth={1.5} />, 
-      onClick: () => setInput('체질에 맞는 레시피 추천해줘'), 
-      bgClass: 'from-orange-100 to-orange-50'
+    {
+      title: '다이어트 플랜',
+      description: '건강 목표에 맞는 식단 추천',
+      icon: <BarChart className="w-6 h-6 text-blue-600" strokeWidth={1.5} />,
+      onClick: () => handleFeatureClick('diet', '다이어트 플랜'),
     },
-    { 
-      title: '식단 추천', 
-      description: '건강한 식단 조합을 추천해드립니다.', 
-      icon: <FileText className="w-6 h-6 text-green-600" strokeWidth={1.5} />, 
-      onClick: () => setInput('오늘 식단 추천해줘'), 
-      bgClass: 'from-green-100 to-green-50'
+    {
+      title: '이벤트 메뉴',
+      description: '파티·명절 등 이벤트 메뉴 추천',
+      icon: <Sparkles className="w-6 h-6 text-amber-600" strokeWidth={1.5} />,
+      onClick: () => handleFeatureClick('event', '이벤트 메뉴'),
     },
-    { 
-      title: '영양 분석', 
-      description: '식단의 영양 정보를 분석해보세요.', 
-      icon: <BarChart className="w-6 h-6 text-blue-600" strokeWidth={1.5} />, 
-      onClick: () => setInput('영양 분석'), 
-      bgClass: 'from-blue-100 to-blue-50'
-    },
-    { 
-      title: '식재료 정보', 
-      description: '식재료의 효능과 특성을 알려드립니다.', 
-      icon: <Utensils className="w-6 h-6 text-purple-600" strokeWidth={1.5} />, 
-      onClick: () => setInput('당근의 효능에 대해 알려줘'), 
-      bgClass: 'from-purple-100 to-purple-50'
-    },
-    { 
-      title: '다이어트 도우미', 
-      description: '건강한 다이어트를 도와드립니다.', 
-      icon: <User className="w-6 h-6 text-teal-600" strokeWidth={1.5} />, 
-      onClick: () => setInput('1주일 다이어트 식단 알려줘'), 
-      bgClass: 'from-teal-100 to-teal-50'
-    },
-    { 
-      title: '제철 음식', 
-      description: '계절에 맞는 음식을 추천해드립니다.', 
-      icon: <Calendar className="w-6 h-6 text-amber-600" strokeWidth={1.5} />, 
-      onClick: () => setInput('이달의 제철 음식 알려줘'), 
-      bgClass: 'from-amber-100 to-amber-50'
-    },
-    { 
-      title: '식사 기록', 
-      description: '오늘 드신 음식을 기록하세요.', 
-      icon: <ClipboardList className="w-6 h-6 text-indigo-600" strokeWidth={1.5} />, 
-      onClick: () => setInput('아침으로 사과와 시리얼을 먹었어'), 
-      bgClass: 'from-indigo-100 to-indigo-50'
+    {
+      title: '난이도 조정',
+      description: '요리 난이도에 맞춘 레시피 제공',
+      icon: <Utensils className="w-6 h-6 text-purple-600" strokeWidth={1.5} />,
+      onClick: () => handleFeatureClick('difficulty', '난이도 조정'),
     },
   ];
 
