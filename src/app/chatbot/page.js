@@ -415,9 +415,13 @@ export default function ChatbotPage() {
                               <Save size={16} className="mr-1" />
                               저장
                             </Button>
-                            <Link href={`/recipe/${generatedRecipe.id}`} className="flex-1">
-                              <Button className="bg-primary hover:bg-primary/90 w-full">자세히 보기</Button>
-                            </Link>
+                            {generatedRecipe.id ? (
+                              <Link href={`/recipe/${generatedRecipe.id}`} className="flex-1">
+                                <Button className="bg-primary hover:bg-primary/90 w-full">자세히 보기</Button>
+                              </Link>
+                            ) : (
+                              <Button className="bg-primary/30 w-full" disabled>DB 저장 중...</Button>
+                            )}
                           </div>
                         </div>
                       </motion.div>
