@@ -1,9 +1,10 @@
+"use client";
 // import Image from 'next/image';
 import { useState } from 'react';
 import { Clock, UtensilsCrossed, User, ShieldCheck } from 'lucide-react';
 
 export function ChatRecipeCard({ recipe }) {
-  const { title, description, ingredients, steps, cookTime, servings, suitableFor, image, nutritionalInfo } = recipe;
+  const { title, description, reason, suitableBodyTypes, ingredients, steps, cookTime, servings, suitableFor, image, nutritionalInfo } = recipe;
   const [imgError, setImgError] = useState(false);
   const [showAllSteps, setShowAllSteps] = useState(false);
   
@@ -24,6 +25,12 @@ export function ChatRecipeCard({ recipe }) {
       <div>
         <h3 className="font-bold text-lg text-gray-900">{title}</h3>
         <p className="text-gray-600 text-sm mt-1">{description}</p>
+        {reason && (
+          <p className="text-xs text-gray-500 mt-2">생성 이유: {reason}</p>
+        )}
+        {Array.isArray(suitableBodyTypes) && suitableBodyTypes.length > 0 && (
+          <p className="text-xs text-gray-500 mt-2">적합 체질: {suitableBodyTypes.join(', ')}</p>
+        )}
       </div>
       
       <div className="flex flex-wrap gap-3 text-sm text-gray-700">

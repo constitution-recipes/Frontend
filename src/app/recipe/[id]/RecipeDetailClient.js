@@ -29,8 +29,8 @@ export default function RecipeDetailClient({ id }) {
   // 레시피 로드 후 localStorage 저장 상태 확인 (항상 같은 훅 순서)
   useEffect(() => {
     if (recipe) {
-      const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
-      setIsSaved(saved.includes(recipe.id));
+    const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
+    setIsSaved(saved.includes(recipe.id));
     }
   }, [recipe]);
 

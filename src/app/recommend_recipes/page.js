@@ -12,7 +12,6 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Checkbox } from '@/components/ui/checkbox';
 import { Filter, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { dummyRecipes } from '@/lib/dummy-data';
 import SidebarLayout from '@/components/layout/SidebarLayout';
 import { motion } from 'framer-motion';
 import { Check, ChevronDown, Search, Clock, Utensils, User } from 'lucide-react';
@@ -38,12 +37,17 @@ export default function RecommendRecipesPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    // 더미 데이터 로드
-    setRecipes(dummyRecipes);
-    setFilteredRecipes(dummyRecipes);
-    
-    // 체질 정보 로드 (실제로는 API 또는 로컬 스토리지에서 가져옴)
-    setBodyType('소양체질');
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+    // 백엔드에서 모든 레시피 조회
+    fetch(`${API_URL}/api/v1/recipes/get_all_recipes`)
+      .then(res => res.json())
+      .then(data => {
+        setRecipes(data);
+        setFilteredRecipes(data);
+      })
+      .catch(err => console.error('레시피 불러오기 실패:', err));
+    // 체질 정보 로드
+    setBodyType('목양체질');
   }, []);
 
   useEffect(() => {
@@ -51,7 +55,9 @@ export default function RecommendRecipesPage() {
   }, [searchQuery, filters, recipes]);
 
   const applyFilters = () => {
-    let results = [...recipes];
+    // recipes가 배열이 아닐 경우 빈 배열로 초기화
+    const base = Array.isArray(recipes) ? recipes : [];
+    let results = [...base];
     const activeFiltersList = [];
     
     // 검색어 필터링
@@ -98,8 +104,8 @@ export default function RecommendRecipesPage() {
     
     // 체질 맞춤 필터링
     if (filters.bodyTypeMatch && bodyType) {
-      results = results.filter(recipe => 
-        recipe.suitableBodyTypes.includes(bodyType)
+      results = results.filter(recipe =>
+        Array.isArray(recipe.suitableBodyTypes) && recipe.suitableBodyTypes.includes(bodyType)
       );
       activeFiltersList.push(`체질맞춤: ${bodyType}`);
     }
@@ -340,7 +346,7 @@ export default function RecommendRecipesPage() {
 
                   <TabsContent value="bodyType">
                     <div className="flex flex-wrap gap-2">
-                      {['태양체질', '태음체질', '소양체질', '소음체질'].map((type) => (
+                      {['목양체질','목음체질','토양체질','토음체질','금양체질','금음체질','수양체질','수음체질'].map((type) => (
                         <button
                           key={type}
                           onClick={() => handleFilterChange('bodyType', type)}
@@ -397,9 +403,13 @@ export default function RecommendRecipesPage() {
             {/* 결과 탭 */}
             <Tabs defaultValue="all" className="w-full">
               <TabsList className="w-full max-w-md mx-auto grid grid-cols-3 mb-8">
-                <TabsTrigger value="all">전체 ({filteredRecipes.length})</TabsTrigger>
-                <TabsTrigger value="bodyType">체질 맞춤 ({filteredRecipes.filter(r => r.suitableBodyTypes.includes(bodyType)).length})</TabsTrigger>
-                <TabsTrigger value="trending">인기 레시피 ({filteredRecipes.filter(r => r.trending).length})</TabsTrigger>
+                <TabsTrigger value="all">전체 ({Array.isArray(filteredRecipes) ? filteredRecipes.length : 0})</TabsTrigger>
+                <TabsTrigger value="bodyType">
+                  체질 맞춤 ({Array.isArray(filteredRecipes) ? filteredRecipes.filter(r => Array.isArray(r.suitableBodyTypes) && r.suitableBodyTypes.includes(bodyType)).length : 0})
+                </TabsTrigger>
+                <TabsTrigger value="trending">
+                  인기 레시피 ({Array.isArray(filteredRecipes) ? filteredRecipes.filter(r => r.trending).length : 0})
+                </TabsTrigger>
               </TabsList>
               
               <TabsContent value="all">
@@ -420,9 +430,9 @@ export default function RecommendRecipesPage() {
               
               <TabsContent value="bodyType">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredRecipes.filter(r => r.suitableBodyTypes.includes(bodyType)).length > 0 ? (
+                  {Array.isArray(filteredRecipes) && filteredRecipes.filter(r => Array.isArray(r.suitableBodyTypes) && r.suitableBodyTypes.includes(bodyType)).length > 0 ? (
                     filteredRecipes
-                      .filter(r => r.suitableBodyTypes.includes(bodyType))
+                      .filter(r => Array.isArray(r.suitableBodyTypes) && r.suitableBodyTypes.includes(bodyType))
                       .map(recipe => (
                         <RecipeCard key={recipe.id} recipe={recipe} bodyType={bodyType} />
                       ))
@@ -438,7 +448,7 @@ export default function RecommendRecipesPage() {
               
               <TabsContent value="trending">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredRecipes.filter(r => r.trending).length > 0 ? (
+                  {Array.isArray(filteredRecipes) && filteredRecipes.filter(r => r.trending).length > 0 ? (
                     filteredRecipes
                       .filter(r => r.trending)
                       .map(recipe => (

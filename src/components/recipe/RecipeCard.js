@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { Clock, Star, ChefHat, Tag, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -41,14 +40,7 @@ export function RecipeCard({ recipe }) {
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg">
       {/* 이미지 영역 */}
-      <div className="relative h-48 w-full">
-        <Image
-          src={image}
-          alt={title}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        />
+      <div className="relative h-48 w-full bg-gray-100 flex items-center justify-center">
         <button 
           onClick={handleSave}
           className="absolute top-3 right-3 p-1.5 bg-white/80 backdrop-blur-sm rounded-full transition-colors hover:bg-white"

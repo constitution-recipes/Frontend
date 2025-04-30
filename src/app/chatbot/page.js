@@ -103,18 +103,26 @@ export default function ChatbotPage() {
   }, [messages, generatedRecipe]);
 
   // 응답 처리: JSON 레시피 데이터일 경우 카드 렌더링, 아니면 일반 대화
-  function processResponse(rawMessage, currentMessages) {
+  function processResponse(raw, currentMessages) {
+    let rawMessage = raw.trim();
+    // 문자열로 한 번 더 인코딩된 경우 언랩
+    if (rawMessage.startsWith('"') && rawMessage.endsWith('"')) {
+      try { rawMessage = JSON.parse(rawMessage); } catch {}
+    }
+    // 코드펜스 제거
+    const cleaned = rawMessage.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
     try {
-      const cleaned = rawMessage.trim().replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
       const parsed = JSON.parse(cleaned);
       const arr = Array.isArray(parsed) ? parsed : [parsed];
-      if (arr.length > 0 && arr[0]?.id) {
+      if (arr.length > 0 && (arr[0]?.id || arr[0]?.title)) {
         setGeneratedRecipe(arr[0]);
         return;
       }
-    } catch {}
-    // JSON이 아니거나 id 필드가 없으면 일반 대화로
-    setMessages([...currentMessages, { role: 'assistant', content: rawMessage }]);
+    } catch (e) {
+      console.error('processResponse JSON parse error:', e, cleaned);
+    }
+    // JSON이 아니거나 레시피 구조가 아니면 일반 대화로 처리
+    setMessages([...currentMessages, { role: 'assistant', content: raw }]);
   }
 
   // 메시지 제출 처리
@@ -185,9 +193,22 @@ export default function ChatbotPage() {
   }, [sessionId]);
 
   // 레시피 저장
-  const saveRecipe = () => {
-    alert('레시피가 저장되었습니다!');
-    // 실제 구현에서는 API 호출
+  const saveRecipe = async () => {
+    if (!generatedRecipe) return;
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/recipes/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(generatedRecipe),
+      });
+      if (!res.ok) throw new Error('레시피 저장 실패');
+      const saved = await res.json();
+      setGeneratedRecipe(prev => ({ ...prev, id: saved.id }));
+      alert('레시피가 저장되었습니다!');
+    } catch (error) {
+      console.error('saveRecipe error:', error);
+      alert('레시피 저장 중 오류가 발생했습니다.');
+    }
   };
 
   // 기능별 챗봇 호출 함수
@@ -416,9 +437,9 @@ export default function ChatbotPage() {
                               저장
                             </Button>
                             {generatedRecipe.id ? (
-                              <Link href={`/recipe/${generatedRecipe.id}`} className="flex-1">
-                                <Button className="bg-primary hover:bg-primary/90 w-full">자세히 보기</Button>
-                              </Link>
+                            <Link href={`/recipe/${generatedRecipe.id}`} className="flex-1">
+                              <Button className="bg-primary hover:bg-primary/90 w-full">자세히 보기</Button>
+                            </Link>
                             ) : (
                               <Button className="bg-primary/30 w-full" disabled>DB 저장 중...</Button>
                             )}
