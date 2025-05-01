@@ -142,10 +142,7 @@ export default function ChatbotPage() {
       const parsed = JSON.parse(cleaned);
       const arr = Array.isArray(parsed) ? parsed : [parsed];
       if (arr.length > 0 && (arr[0]?.id || arr[0]?.title)) {
-        // 레시피 카드로 표시
         setGeneratedRecipe(arr[0]);
-        // JSON 메시지는 채팅 리스트에서 제거
-        setMessages(currentMessages.filter(m => m.content.trim() !== rawMessage));
         return;
       }
     } catch (e) {
@@ -415,35 +412,90 @@ export default function ChatbotPage() {
                 <div className="max-w-3xl mx-auto">
                   <div className="space-y-6">
                     {/* 메시지들 */}
-                    {messages.map((message, index) => (
-                      <motion.div
-                        key={index}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.05 }}
-                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                      >
-                        {message.role === 'assistant' && (
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-primary/80 text-white flex items-center justify-center text-sm mr-2 flex-shrink-0">
-                            <ChefHat size={16} />
-                          </div>
-                        )}
-                        <div
-                          className={`max-w-md px-5 py-3 rounded-2xl shadow-sm text-base ${
-                            message.role === 'user'
-                              ? 'bg-primary text-primary-foreground rounded-tr-none'
-                              : 'bg-card border border-border/40 rounded-tl-none'
-                          }`}
+                    {messages.map((message, index) => {
+                      // JSON 형태 레시피 메시지 파싱 시도
+                      let raw = message.content.trim();
+                      const cleaned = raw.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+                      let isRecipe = false;
+                      let recipeObj = null;
+                      if (message.role === 'assistant' && (cleaned.startsWith('{') || cleaned.startsWith('['))) {
+                        try {
+                          const parsed = JSON.parse(cleaned);
+                          const arr = Array.isArray(parsed) ? parsed : [parsed];
+                          if (arr.length > 0 && (arr[0].id || arr[0].title)) {
+                            isRecipe = true;
+                            recipeObj = arr[0];
+                          }
+                        } catch {}
+                      }
+                      if (isRecipe) {
+                        // 레시피 카드 렌더링
+                        return (
+                          <motion.div
+                            key={index}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: index * 0.05 }}
+                            className="flex justify-start"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-primary/80 text-white flex items-center justify-center text-sm mr-2 mt-3 flex-shrink-0">
+                              <ChefHat size={16} />
+                            </div>
+                            <div className="max-w-md w-full bg-card shadow-soft rounded-2xl rounded-tl-none p-5 border border-border/40">
+                              <ChatRecipeCard recipe={recipeObj} />
+                              {/* 저장/자세히 보기 버튼 */}
+                              <div className="flex justify-between mt-4 gap-3">
+                                <Button
+                                  variant="outline"
+                                  className="text-primary border-primary/30 hover:bg-primary/10 hover:text-primary flex-1"
+                                  onClick={saveRecipe}
+                                >
+                                  <Save size={16} className="mr-1" />
+                                  저장
+                                </Button>
+                                {recipeObj.id ? (
+                                  <Link href={`/recipe/${recipeObj.id}`} className="flex-1">
+                                    <Button className="bg-primary hover:bg-primary/90 w-full">자세히 보기</Button>
+                                  </Link>
+                                ) : (
+                                  <Button className="bg-primary/30 w-full" disabled>DB 저장 중...</Button>
+                                )}
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      }
+                      // 일반 텍스트 메시지 렌더링
+                      return (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.05 }}
+                          className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                         >
-                          {message.content}
-                        </div>
-                        {message.role === 'user' && (
-                          <div className="w-8 h-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-sm ml-2 flex-shrink-0">
-                            {userProfile.name[0]}
+                          {message.role === 'assistant' && (
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-primary/80 text-white flex items-center justify-center text-sm mr-2 flex-shrink-0">
+                              <ChefHat size={16} />
+                            </div>
+                          )}
+                          <div
+                            className={`max-w-md px-5 py-3 rounded-2xl shadow-sm text-base ${
+                              message.role === 'user'
+                                ? 'bg-primary text-primary-foreground rounded-tr-none'
+                                : 'bg-card border border-border/40 rounded-tl-none'
+                            }`}
+                          >
+                            {message.content}
                           </div>
-                        )}
-                      </motion.div>
-                    ))}
+                          {message.role === 'user' && (
+                            <div className="w-8 h-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-sm ml-2 flex-shrink-0">
+                              {userProfile.name[0]}
+                            </div>
+                          )}
+                        </motion.div>
+                      );
+                    })}
 
                     {/* 생성된 레시피 */}
                     {generatedRecipe && (
