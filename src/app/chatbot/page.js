@@ -29,6 +29,7 @@ import SidebarLayout from '@/components/layout/SidebarLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ChatbotIntro from './ChatbotIntro';
+import { useAuth } from '@/contexts/AuthContext';
 
 // 가상의 사용자 정보 (실제로는 로그인 상태에서 가져옵니다)
 const userProfile = {
@@ -74,26 +75,24 @@ const dummyRecipes = [
 export default function ChatbotPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get('session') || 'default';
+  // URL 쿼리에서 초기 sessionId 가져오기
+  const initialSessionId = searchParams.get('session');
+  const [sessionId, setSessionId] = useState(initialSessionId);
+  // URL 변경 시 state 동기화
+  useEffect(() => {
+    setSessionId(searchParams.get('session'));
+  }, [searchParams]);
 
-  const [messages, setMessages] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const sessions = JSON.parse(localStorage.getItem('chatSessions') || '[]');
-      const found = sessions.find(s => s.id === sessionId);
-      return found?.messages || [
-        { role: 'assistant', content: '안녕하세요! AI 레시피 어시스턴트입니다. 어떤 레시피를 찾고 계신가요? 원하는 음식, 재료, 식이 제한 등을 자유롭게 말씀해주세요.' }
-      ];
-    }
-    return [
-      { role: 'assistant', content: '안녕하세요! AI 레시피 어시스턴트입니다. 어떤 레시피를 찾고 계신가요? 원하는 음식, 재료, 식이 제한 등을 자유롭게 말씀해주세요.' }
-    ];
-  });
+  // 로그인한 사용자 정보
+  const { user } = useAuth();
+
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [generatedRecipe, setGeneratedRecipe] = useState(null);
   const [showOptions, setShowOptions] = useState(false);
   const [useProfile, setUseProfile] = useState(true);
-  const [initialState, setInitialState] = useState(messages.length === 1 && messages[0].role === 'assistant');
+  const [initialState, setInitialState] = useState(true);
   
   const messagesEndRef = useRef(null);
 
@@ -101,6 +100,29 @@ export default function ChatbotPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, generatedRecipe]);
+
+  // sessionId가 변경될 때마다 백엔드에서 메시지 로드
+  useEffect(() => {
+    console.log(`[DEBUG][ChatPage] sessionId changed to: ${sessionId}`);
+    if (sessionId) {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat/messages/${sessionId}`)
+        .then(res => res.json())
+        .then(data => {
+          const msgs = data.map(m => ({ role: m.role, content: m.content }));
+          console.log(`[DEBUG][ChatPage] Loaded ${msgs.length} messages for session ${sessionId}`);
+          setMessages(msgs);
+          setInitialState(msgs.length === 0);
+          setGeneratedRecipe(null);
+        })
+        .catch(err => console.error('메시지 조회 오류:', err));
+    } else {
+      // 새로운 채팅 시작 시 초기 상태
+      console.log('[DEBUG][ChatPage] No sessionId, resetting messages');
+      setMessages([]);
+      setInitialState(true);
+      setGeneratedRecipe(null);
+    }
+  }, [sessionId]);
 
   // 응답 처리: JSON 레시피 데이터일 경우 카드 렌더링, 아니면 일반 대화
   function processResponse(raw, currentMessages) {
@@ -125,10 +147,38 @@ export default function ChatbotPage() {
     setMessages([...currentMessages, { role: 'assistant', content: raw }]);
   }
 
-  // 메시지 제출 처리
+  // 메시지 제출 처리 (세션 생성 포함)
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
+    console.log(`[DEBUG][ChatPage] handleSubmit called with sessionId: ${sessionId}, user: ${user?.id}`);
+    // 세션이 없으면 생성 (첫 메시지도 저장할 수 있게 return 제거)
+    let currentSessionId = sessionId;
+    if (!currentSessionId) {
+      console.log(`[DEBUG][ChatPage] Creating new session for user: ${user?.id}`);
+      try {
+        const sessRes = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat/session`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ user_id: user.id, title: '' }),
+          }
+        );
+        if (!sessRes.ok) throw new Error('세션 생성 실패');
+        const sessData = await sessRes.json();
+        currentSessionId = sessData.id;
+        console.log(`[DEBUG][ChatPage] New session created: ${currentSessionId}`);
+        // URL 히스토리만 교체하여 state 동기화
+        window.history.replaceState(null, '', `/chatbot?session=${currentSessionId}`);
+        setSessionId(currentSessionId);
+      } catch (err) {
+        console.error('세션 생성 오류:', err);
+        return;
+      }
+    }
+
     const userMessage = { role: 'user', content: input };
     const updated = [...messages, userMessage];
     setMessages(updated);
@@ -139,14 +189,15 @@ export default function ChatbotPage() {
     // 입력 전 상태에서 메시지 전송 시 상태 변경
     if (initialState) setInitialState(false);
 
-    console.log('handleSubmit payload:', { session_id: sessionId, messages: updated });
+    console.log('handleSubmit payload:', { session_id: currentSessionId, messages: updated });
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/chat`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: sessionId, messages: updated }),
+          credentials: 'include',
+          body: JSON.stringify({ session_id: currentSessionId, messages: updated }),
         }
       );
       console.log('handleSubmit response raw:', res);
@@ -163,34 +214,6 @@ export default function ChatbotPage() {
       setLoading(false);
     }
   };
-
-  // 페이지 첫 진입 시(세션이 'default'일 때) 항상 인트로 상태로 초기화
-  useEffect(() => {
-    if (sessionId === 'default') {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('chatSessions');
-      }
-      setInitialState(true);
-      setMessages([
-        { role: 'assistant', content: '안녕하세요! AI 레시피 어시스턴트입니다. 어떤 레시피를 찾고 계신가요? 원하는 음식, 재료, 식이 제한 등을 자유롭게 말씀해주세요.' }
-      ]);
-      setGeneratedRecipe(null);
-    }
-  }, [sessionId]);
-
-  // 새 채팅/세션 변경 시 메시지 불러오기
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const sessions = JSON.parse(localStorage.getItem('chatSessions') || '[]');
-      const found = sessions.find(s => s.id === sessionId);
-      setMessages(found?.messages || [
-        { role: 'assistant', content: '안녕하세요! AI 레시피 어시스턴트입니다. 어떤 레시피를 찾고 계신가요? 원하는 음식, 재료, 식이 제한 등을 자유롭게 말씀해주세요.' }
-      ]);
-      setGeneratedRecipe(null);
-      const isInitial = !found?.messages || (found?.messages.length === 1 && found?.messages[0].role === 'assistant');
-      setInitialState(isInitial);
-    }
-  }, [sessionId]);
 
   // 레시피 저장
   const saveRecipe = async () => {

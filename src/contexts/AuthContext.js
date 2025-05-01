@@ -57,11 +57,14 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     setIsLoading(true);
     try {
-      const { user } = await authService.login(email, password);
-      setUser(user);
+      // 토큰 발급
+      await authService.login(email, password);
+      // 로그인 후 현재 사용자 정보 조회
+      const currentUser = await userService.getCurrentUser();
+      setUser(currentUser);
       toast.success('로그인에 성공했습니다!');
       router.push('/recommend_recipes');
-      return user;
+      return currentUser;
     } catch (error) {
       toast.error(error.response?.data?.detail || '로그인에 실패했습니다. 다시 시도해주세요.');
       throw error;
