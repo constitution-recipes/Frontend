@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { 
@@ -13,21 +14,49 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Sidebar() {
+  const { user } = useAuth();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get('session') || 'default';
+  const currentSessionId = searchParams.get('session');
   const [expandHistory, setExpandHistory] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [chatSessions, setChatSessions] = useState([]);
 
-  // 클라이언트 사이드에서만 로컬스토리지 접근
+  // 클라이언트 사이드에서만 mounted 상태 업데이트
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // 저장된 채팅 세션 가져오기
-  const chatSessions = mounted && typeof window !== 'undefined' 
-    ? JSON.parse(localStorage.getItem('chatSessions') || '[]') 
-    : [];
+  useEffect(() => {
+    // mounted, user, 또는 sessionId 변경 시 세션 목록 재조회
+    if (mounted && user?.id) {
+      // 백엔드에서 세션 목록 가져오기
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat/session/${user.id}`, { credentials: 'include' })
+        .then(res => res.json())
+        .then(data => setChatSessions(data))
+        .catch(err => console.error('세션 목록 조회 오류:', err));
+    }
+  }, [mounted, user, currentSessionId]);
+
+  // 세션 삭제 처리
+  const handleDeleteSession = async (id) => {
+    if (confirm('정말 이 채팅 기록을 삭제하시겠습니까?')) {
+      try {
+        await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat/session/${id}`,
+          { method: 'DELETE', credentials: 'include' }
+        );
+        // 목록에서 제거
+        setChatSessions(prev => prev.filter(s => s.id !== id));
+        // 현재 세션 삭제된 경우 기본 화면으로 이동
+        if (currentSessionId === id) {
+          window.location.href = '/chatbot';
+        }
+      } catch (e) {
+        console.error('세션 삭제 오류:', e);
+      }
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-gradient-to-br from-white to-primary/5 dark:from-gray-900 dark:to-primary/20">
@@ -47,8 +76,8 @@ export default function Sidebar() {
             whileTap={{ scale: 0.98 }}
             className="flex items-center justify-center w-full py-3 px-4 bg-primary text-primary-foreground rounded-lg font-medium transition-all hover:bg-primary/90 shadow-sm"
             onClick={() => {
-              const newId = Date.now().toString();
-              window.location.href = `/chatbot?session=${newId}`;
+              // 새 채팅: 세션 생성 없이 채팅 페이지로 이동
+              window.location.href = '/chatbot';
             }}
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -83,20 +112,28 @@ export default function Sidebar() {
                 <div className="max-h-[calc(100vh-240px)] overflow-y-auto pr-2 space-y-1 pl-4 mt-1">
                   {chatSessions.length > 0 ? (
                     chatSessions.map((s) => (
-                      <Link
-                        key={s.id}
-                        href={`/chatbot?session=${s.id}`}
-                        className={`flex items-center group py-2 px-3 rounded-lg text-sm transition-colors ${
-                          pathname === `/chatbot` && sessionId === s.id
-                            ? 'bg-primary/10 text-primary' 
-                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                        }`}
-                      >
-                        <FileText className="h-4 w-4 mr-3 flex-shrink-0" />
-                        <span className="truncate">
-                          {s.title || `채팅 ${s.id.slice(-4)}`}
-                        </span>
-                      </Link>
+                      <div key={s.id} className="flex items-center justify-between">
+                        <Link
+                          href={`/chatbot?session=${s.id}`}
+                          className={`flex items-center flex-1 group py-2 px-3 rounded-lg text-sm transition-colors ${
+                            pathname === `/chatbot` && currentSessionId === s.id
+                              ? 'bg-primary/10 text-primary' 
+                              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                          }`}
+                        >
+                          <FileText className="h-4 w-4 mr-3 flex-shrink-0" />
+                          <span className="truncate">
+                            {s.title || `채팅 ${s.id.slice(-4)}`}
+                          </span>
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteSession(s.id)}
+                          className="text-sm text-red-500 hover:text-red-700 ml-2"
+                          aria-label="삭제"
+                        >
+                          ×
+                        </button>
+                      </div>
                     ))
                   ) : (
                     <div className="py-8 flex flex-col items-center justify-center text-center px-4">

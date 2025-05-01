@@ -4,16 +4,38 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Clock, ChefHat, Star, ArrowLeft, Heart, Share2, Users, Award, CheckCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
-export default function RecipeDetailClient({ recipe }) {
+export default function RecipeDetailClient({ id }) {
+  const [recipe, setRecipe] = useState(null);
   const [isSaved, setIsSaved] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [imgError, setImgError] = useState(false);
+  const router = useRouter();
 
-  // 마운트 시 localStorage에서 저장 여부 확인
   useEffect(() => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+    fetch(`${API_URL}/api/v1/recipes/${id}`)
+      .then(res => {
+        if (!res.ok) throw new Error('Not found');
+        return res.json();
+      })
+      .then(data => setRecipe(data))
+      .catch(() => router.replace('/404'))
+      .finally(() => setLoading(false));
+  }, [id, router]);
+
+  // 레시피 로드 후 localStorage 저장 상태 확인 (항상 같은 훅 순서)
+  useEffect(() => {
+    if (recipe) {
     const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
     setIsSaved(saved.includes(recipe.id));
-  }, [recipe.id]);
+    }
+  }, [recipe]);
+
+  if (loading) return <div className="p-8 text-center">로딩 중...</div>;
+  if (!recipe) return null;
 
   // 하트 클릭 시 저장/해제
   const handleSave = () => {
@@ -52,12 +74,13 @@ export default function RecipeDetailClient({ recipe }) {
       {/* 레시피 헤더 */}
       <div className="bg-white rounded-xl shadow-md overflow-hidden">
         <div className="relative h-72 sm:h-96">
-          <Image
-            src={recipe.image}
+          {/* 외부 이미지 로드 실패 시 placeholder로 대체 */}
+          <img
+            src={imgError ? 'https://placekitten.com/800/600' : recipe.image}
             alt={recipe.title}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover w-full h-full"
+            loading="lazy"
+            onError={() => setImgError(true)}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
           <div className="absolute top-4 right-4 flex gap-2">
@@ -94,11 +117,6 @@ export default function RecipeDetailClient({ recipe }) {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-8">
             <div className="flex flex-col items-center p-3 bg-gray-50 rounded-lg">
               <Clock size={24} className="text-teal-500 mb-1" />
-              <span className="text-xs text-gray-500">준비 시간</span>
-              <span className="font-medium">{recipe.prepTime}</span>
-            </div>
-            <div className="flex flex-col items-center p-3 bg-gray-50 rounded-lg">
-              <ChefHat size={24} className="text-teal-500 mb-1" />
               <span className="text-xs text-gray-500">조리 시간</span>
               <span className="font-medium">{recipe.cookTime}</span>
             </div>
@@ -111,6 +129,11 @@ export default function RecipeDetailClient({ recipe }) {
               <Star size={24} className="text-yellow-500 mb-1" />
               <span className="text-xs text-gray-500">평점</span>
               <span className="font-medium">{recipe.rating.toFixed(1)}</span>
+            </div>
+            <div className="flex flex-col items-center p-3 bg-gray-50 rounded-lg">
+              <ChefHat size={24} className="text-teal-500 mb-1" />
+              <span className="text-xs text-gray-500">난이도</span>
+              <span className="font-medium">{recipe.difficulty}</span>
             </div>
           </div>
           <div className="mb-8">

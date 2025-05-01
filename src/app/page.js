@@ -7,30 +7,35 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/h
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
-    // 예시: accessToken이 있으면 로그인 상태로 간주
-    if (typeof window !== 'undefined') {
-      setIsLoggedIn(!!localStorage.getItem('accessToken'));
+    if (!isLoading && isAuthenticated) {
+      router.replace('/chatbot');
     }
-  }, []);
+  }, [isLoading, isAuthenticated, router]);
+
+  if (!isLoading && isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* 네비게이션 */}
-      <nav className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Link href={isLoggedIn ? "/chatbot" : "/"} className="flex items-center space-x-2">
-            <span className="text-2xl font-bold bg-gradient-to-r from-primary/90 via-primary to-primary/90 text-transparent bg-clip-text">
+      {/* 네비게이션 (NavBar 스타일) */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center space-x-2">
+            <span className="text-xl font-bold text-gradient bg-gradient-to-r from-primary via-primary to-secondary">
               ChiDiet
             </span>
-            <Badge variant="secondary" className="hidden sm:inline-flex">Beta</Badge>
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center space-x-4">
             <Link href="/auth/login">
               <Button variant="ghost" className="text-sm">로그인</Button>
             </Link>
@@ -41,7 +46,9 @@ export default function Home() {
             </Link>
           </div>
         </div>
-      </nav>
+      </header>
+      {/* 헤더 높이 만큼 간격 확보 */}
+      <div className="h-16"></div>
 
       {/* 히어로 섹션 */}
       <section className="relative overflow-hidden bg-dot-pattern min-h-[90vh] flex items-center">

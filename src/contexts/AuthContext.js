@@ -57,11 +57,12 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     setIsLoading(true);
     try {
-      const { user } = await authService.login(email, password);
-      setUser(user);
+      await authService.login(email, password);
+      const currentUser = await userService.getCurrentUser();
+      setUser(currentUser);
       toast.success('로그인에 성공했습니다!');
-      router.push('/recommend_recipes');
-      return user;
+      router.push('/chatbot');
+      return currentUser;
     } catch (error) {
       toast.error(error.response?.data?.detail || '로그인에 실패했습니다. 다시 시도해주세요.');
       throw error;
@@ -96,7 +97,7 @@ export function AuthProvider({ children }) {
     authService.logout();
     setUser(null);
     toast.success('로그아웃되었습니다.');
-    router.push('/auth/login');
+    router.push('/');
   };
 
   // Context에 제공할 값

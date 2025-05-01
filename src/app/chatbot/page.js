@@ -29,6 +29,7 @@ import SidebarLayout from '@/components/layout/SidebarLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ChatbotIntro from './ChatbotIntro';
+import { useAuth } from '@/contexts/AuthContext';
 
 // 가상의 사용자 정보 (실제로는 로그인 상태에서 가져옵니다)
 const userProfile = {
@@ -74,26 +75,24 @@ const dummyRecipes = [
 export default function ChatbotPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get('session') || 'default';
+  // URL 쿼리에서 초기 sessionId 가져오기
+  const initialSessionId = searchParams.get('session');
+  const [sessionId, setSessionId] = useState(initialSessionId);
+  // URL 변경 시 state 동기화
+  useEffect(() => {
+    setSessionId(searchParams.get('session'));
+  }, [searchParams]);
 
-  const [messages, setMessages] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const sessions = JSON.parse(localStorage.getItem('chatSessions') || '[]');
-      const found = sessions.find(s => s.id === sessionId);
-      return found?.messages || [
-        { role: 'assistant', content: '안녕하세요! AI 레시피 어시스턴트입니다. 어떤 레시피를 찾고 계신가요? 원하는 음식, 재료, 식이 제한 등을 자유롭게 말씀해주세요.' }
-      ];
-    }
-    return [
-      { role: 'assistant', content: '안녕하세요! AI 레시피 어시스턴트입니다. 어떤 레시피를 찾고 계신가요? 원하는 음식, 재료, 식이 제한 등을 자유롭게 말씀해주세요.' }
-    ];
-  });
+  // 로그인한 사용자 정보
+  const { user } = useAuth();
+
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [generatedRecipe, setGeneratedRecipe] = useState(null);
   const [showOptions, setShowOptions] = useState(false);
   const [useProfile, setUseProfile] = useState(true);
-  const [initialState, setInitialState] = useState(messages.length === 1 && messages[0].role === 'assistant');
+  const [initialState, setInitialState] = useState(true);
   
   const messagesEndRef = useRef(null);
 
@@ -102,154 +101,199 @@ export default function ChatbotPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, generatedRecipe]);
 
-  // 메시지 제출 처리
+  // sessionId가 변경될 때마다 백엔드에서 메시지 로드
+  useEffect(() => {
+    console.log(`[DEBUG][ChatPage] sessionId changed to: ${sessionId}`);
+    if (sessionId) {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat/messages/${sessionId}`)
+        .then(res => res.json())
+        .then(data => {
+          const msgs = data.map(m => ({ role: m.role, content: m.content }));
+          console.log(`[DEBUG][ChatPage] Loaded ${msgs.length} messages for session ${sessionId}`);
+          setMessages(msgs);
+          setInitialState(msgs.length === 0);
+          setGeneratedRecipe(null);
+        })
+        .catch(err => console.error('메시지 조회 오류:', err));
+    } else {
+      // 새로운 채팅 시작 시 초기 상태
+      console.log('[DEBUG][ChatPage] No sessionId, resetting messages');
+      setMessages([]);
+      setInitialState(true);
+      setGeneratedRecipe(null);
+    }
+  }, [sessionId]);
+
+  // 응답 처리: JSON 레시피 데이터일 경우 카드 렌더링, 아니면 일반 대화
+  function processResponse(raw, currentMessages) {
+    let rawMessage = raw.trim();
+    // 문자열로 한 번 더 인코딩된 경우 언랩
+    if (rawMessage.startsWith('"') && rawMessage.endsWith('"')) {
+      try { rawMessage = JSON.parse(rawMessage); } catch {}
+    }
+    // 코드펜스 제거
+    const cleaned = rawMessage.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+    // JSON 형식 판단: '{' 또는 '[' 로 시작하지 않으면 일반 대화로 처리
+    if (!cleaned.startsWith('{') && !cleaned.startsWith('[')) {
+      setMessages([...currentMessages, { role: 'assistant', content: raw }]);
+      return;
+    }
+    try {
+      const parsed = JSON.parse(cleaned);
+      const arr = Array.isArray(parsed) ? parsed : [parsed];
+      if (arr.length > 0 && (arr[0]?.id || arr[0]?.title)) {
+        setGeneratedRecipe(arr[0]);
+        return;
+      }
+    } catch (e) {
+      console.error('processResponse JSON parse error:', e, cleaned);
+    }
+    // 파싱에는 성공했지만 레시피 구조가 아니거나, 파싱 실패 시 일반 메시지로 처리
+    setMessages([...currentMessages, { role: 'assistant', content: raw }]);
+  }
+
+  // 메시지 제출 처리 (세션 생성 포함)
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
+    console.log(`[DEBUG][ChatPage] handleSubmit called with sessionId: ${sessionId}, user: ${user?.id}`);
+    // 세션이 없으면 생성 (첫 메시지도 저장할 수 있게 return 제거)
+    let currentSessionId = sessionId;
+    if (!currentSessionId) {
+      console.log(`[DEBUG][ChatPage] Creating new session for user: ${user?.id}`);
+      try {
+        const sessRes = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat/session`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ user_id: user.id, title: '' }),
+          }
+        );
+        if (!sessRes.ok) throw new Error('세션 생성 실패');
+        const sessData = await sessRes.json();
+        currentSessionId = sessData.id;
+        console.log(`[DEBUG][ChatPage] New session created: ${currentSessionId}`);
+        // URL 히스토리만 교체하여 state 동기화
+        window.history.replaceState(null, '', `/chatbot?session=${currentSessionId}`);
+        setSessionId(currentSessionId);
+      } catch (err) {
+        console.error('세션 생성 오류:', err);
+        return;
+      }
+    }
+
     const userMessage = { role: 'user', content: input };
     const updated = [...messages, userMessage];
     setMessages(updated);
     setInput('');
     setLoading(true);
-    
+    setGeneratedRecipe(null);
+
     // 입력 전 상태에서 메시지 전송 시 상태 변경
     if (initialState) setInitialState(false);
-    
-    // 세션 저장
-    if (typeof window !== 'undefined') {
-      let sessions = JSON.parse(localStorage.getItem('chatSessions') || '[]');
-      const idx = sessions.findIndex(s => s.id === sessionId);
-      if (idx > -1) sessions[idx].messages = updated;
-      else sessions.push({ id: sessionId, messages: updated });
-      localStorage.setItem('chatSessions', JSON.stringify(sessions));
-    }
-    
-    setTimeout(() => {
-      if (updated.length >= 4) {
-        setGeneratedRecipe(dummyRecipes[0]);
-        const newMessages = [
-          ...updated,
-          { role: 'assistant', content: '요청하신 내용을 바탕으로 레시피를 만들었습니다. 체질에 맞게 조정된 토마토 수프 레시피입니다. 어떠신가요?' }
-        ];
-        setMessages(newMessages);
-        // 세션 저장
-        if (typeof window !== 'undefined') {
-          let sessions = JSON.parse(localStorage.getItem('chatSessions') || '[]');
-          const idx = sessions.findIndex(s => s.id === sessionId);
-          if (idx > -1) sessions[idx].messages = newMessages;
-          else sessions.push({ id: sessionId, messages: newMessages });
-          localStorage.setItem('chatSessions', JSON.stringify(sessions));
-        }
-      } else {
-        const newMessages = [
-          ...updated,
-          { role: 'assistant', content: '더 구체적으로 알려주세요. 어떤 재료나 음식을 좋아하시나요? 특별한 요구사항이 있으신가요?' }
-        ];
-        setMessages(newMessages);
-        // 세션 저장
-        if (typeof window !== 'undefined') {
-          let sessions = JSON.parse(localStorage.getItem('chatSessions') || '[]');
-          const idx = sessions.findIndex(s => s.id === sessionId);
-          if (idx > -1) sessions[idx].messages = newMessages;
-          else sessions.push({ id: sessionId, messages: newMessages });
-          localStorage.setItem('chatSessions', JSON.stringify(sessions));
-        }
-      }
-      setLoading(false);
-    }, 1500);
-  };
 
-  // 페이지 첫 진입 시(세션이 'default'일 때) 항상 인트로 상태로 초기화
-  useEffect(() => {
-    if (sessionId === 'default') {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('chatSessions');
-      }
-      setInitialState(true);
+    console.log('handleSubmit payload:', { session_id: currentSessionId, messages: updated });
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/chat`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ session_id: currentSessionId, messages: updated }),
+        }
+      );
+      console.log('handleSubmit response raw:', res);
+      if (!res.ok) throw new Error('API error');
+      const { message: rawMessage } = await res.json();
+      console.log('handleSubmit response json:', rawMessage);
+      processResponse(rawMessage, updated);
+    } catch (err) {
       setMessages([
-        { role: 'assistant', content: '안녕하세요! AI 레시피 어시스턴트입니다. 어떤 레시피를 찾고 계신가요? 원하는 음식, 재료, 식이 제한 등을 자유롭게 말씀해주세요.' }
+        ...updated,
+        { role: 'assistant', content: '오류가 발생했습니다. 나중에 다시 시도해주세요.' },
       ]);
-      setGeneratedRecipe(null);
+    } finally {
+      setLoading(false);
     }
-  }, [sessionId]);
-
-  // 새 채팅/세션 변경 시 메시지 불러오기
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const sessions = JSON.parse(localStorage.getItem('chatSessions') || '[]');
-      const found = sessions.find(s => s.id === sessionId);
-      setMessages(found?.messages || [
-        { role: 'assistant', content: '안녕하세요! AI 레시피 어시스턴트입니다. 어떤 레시피를 찾고 계신가요? 원하는 음식, 재료, 식이 제한 등을 자유롭게 말씀해주세요.' }
-      ]);
-      setGeneratedRecipe(null);
-      const isInitial = !found?.messages || (found?.messages.length === 1 && found?.messages[0].role === 'assistant');
-      setInitialState(isInitial);
-    }
-  }, [sessionId]);
+  };
 
   // 레시피 저장
-  const saveRecipe = () => {
-    alert('레시피가 저장되었습니다!');
-    // 실제 구현에서는 API 호출
+  const saveRecipe = async () => {
+    if (!generatedRecipe) return;
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/recipes/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(generatedRecipe),
+      });
+      if (!res.ok) throw new Error('레시피 저장 실패');
+      const saved = await res.json();
+      setGeneratedRecipe(prev => ({ ...prev, id: saved.id }));
+      alert('레시피가 저장되었습니다!');
+    } catch (error) {
+      console.error('saveRecipe error:', error);
+      alert('레시피 저장 중 오류가 발생했습니다.');
+    }
   };
 
-  // 기능 카드 데이터
+  // 기능별 챗봇 호출 함수
+  const handleFeatureClick = async (featureKey, featureTitle) => {
+    const sysMsg = { role: 'system', content: `${featureTitle} 기능이 선택되었습니다.` };
+    const updatedMsgs = [...messages, sysMsg];
+    setMessages(updatedMsgs);
+    setLoading(true);
+    setGeneratedRecipe(null);
+
+    try {
+      console.log('handleFeatureClick payload:', { session_id: sessionId, feature: featureKey, messages: updatedMsgs });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/chat`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId, feature: featureKey, messages: updatedMsgs }),
+        }
+      );
+      console.log('handleFeatureClick response raw:', res);
+      if (!res.ok) throw new Error('API error');
+      const { message: rawMessage } = await res.json();
+      console.log('handleFeatureClick response json:', rawMessage);
+      processResponse(rawMessage, updatedMsgs);
+    } catch (err) {
+      setMessages([...updatedMsgs, { role: 'assistant', content: '오류가 발생했습니다. 나중에 다시 시도해주세요.' }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 4가지 기능 카드 데이터
   const featureCards = [
-    { 
-      title: 'AI 대화', 
-      description: 'AI와 자유롭게 대화해보세요.', 
-      icon: <MessageSquare className="w-6 h-6 text-primary" strokeWidth={1.5} />, 
-      onClick: () => setInput('AI 대화 시작'), 
-      bgClass: 'from-primary/10 to-primary/5'
+    {
+      title: '레시피 변경',
+      description: '알레르기·선호·상황에 맞춰 레시피 커스터마이즈',
+      icon: <ChefHat className="w-6 h-6 text-primary" strokeWidth={1.5} />,
+      onClick: () => handleFeatureClick('customize', '레시피 커스터마이즈'),
     },
-    { 
-      title: '맞춤형 레시피', 
-      description: '나에게 맞는 레시피를 추천해드립니다.', 
-      icon: <ChefHat className="w-6 h-6 text-orange-500" strokeWidth={1.5} />, 
-      onClick: () => setInput('체질에 맞는 레시피 추천해줘'), 
-      bgClass: 'from-orange-100 to-orange-50'
+    {
+      title: '다이어트 플랜',
+      description: '건강 목표에 맞는 식단 추천',
+      icon: <BarChart className="w-6 h-6 text-blue-600" strokeWidth={1.5} />,
+      onClick: () => handleFeatureClick('diet', '다이어트 플랜'),
     },
-    { 
-      title: '식단 추천', 
-      description: '건강한 식단 조합을 추천해드립니다.', 
-      icon: <FileText className="w-6 h-6 text-green-600" strokeWidth={1.5} />, 
-      onClick: () => setInput('오늘 식단 추천해줘'), 
-      bgClass: 'from-green-100 to-green-50'
+    {
+      title: '이벤트 메뉴',
+      description: '파티·명절 등 이벤트 메뉴 추천',
+      icon: <Sparkles className="w-6 h-6 text-amber-600" strokeWidth={1.5} />,
+      onClick: () => handleFeatureClick('event', '이벤트 메뉴'),
     },
-    { 
-      title: '영양 분석', 
-      description: '식단의 영양 정보를 분석해보세요.', 
-      icon: <BarChart className="w-6 h-6 text-blue-600" strokeWidth={1.5} />, 
-      onClick: () => setInput('영양 분석'), 
-      bgClass: 'from-blue-100 to-blue-50'
-    },
-    { 
-      title: '식재료 정보', 
-      description: '식재료의 효능과 특성을 알려드립니다.', 
-      icon: <Utensils className="w-6 h-6 text-purple-600" strokeWidth={1.5} />, 
-      onClick: () => setInput('당근의 효능에 대해 알려줘'), 
-      bgClass: 'from-purple-100 to-purple-50'
-    },
-    { 
-      title: '다이어트 도우미', 
-      description: '건강한 다이어트를 도와드립니다.', 
-      icon: <User className="w-6 h-6 text-teal-600" strokeWidth={1.5} />, 
-      onClick: () => setInput('1주일 다이어트 식단 알려줘'), 
-      bgClass: 'from-teal-100 to-teal-50'
-    },
-    { 
-      title: '제철 음식', 
-      description: '계절에 맞는 음식을 추천해드립니다.', 
-      icon: <Calendar className="w-6 h-6 text-amber-600" strokeWidth={1.5} />, 
-      onClick: () => setInput('이달의 제철 음식 알려줘'), 
-      bgClass: 'from-amber-100 to-amber-50'
-    },
-    { 
-      title: '식사 기록', 
-      description: '오늘 드신 음식을 기록하세요.', 
-      icon: <ClipboardList className="w-6 h-6 text-indigo-600" strokeWidth={1.5} />, 
-      onClick: () => setInput('아침으로 사과와 시리얼을 먹었어'), 
-      bgClass: 'from-indigo-100 to-indigo-50'
+    {
+      title: '난이도 조정',
+      description: '요리 난이도에 맞춘 레시피 제공',
+      icon: <Utensils className="w-6 h-6 text-purple-600" strokeWidth={1.5} />,
+      onClick: () => handleFeatureClick('difficulty', '난이도 조정'),
     },
   ];
 
@@ -368,35 +412,90 @@ export default function ChatbotPage() {
                 <div className="max-w-3xl mx-auto">
                   <div className="space-y-6">
                     {/* 메시지들 */}
-                    {messages.map((message, index) => (
-                      <motion.div
-                        key={index}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.05 }}
-                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                      >
-                        {message.role === 'assistant' && (
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-primary/80 text-white flex items-center justify-center text-sm mr-2 flex-shrink-0">
-                            <ChefHat size={16} />
-                          </div>
-                        )}
-                        <div
-                          className={`max-w-md px-5 py-3 rounded-2xl shadow-sm text-base ${
-                            message.role === 'user'
-                              ? 'bg-primary text-primary-foreground rounded-tr-none'
-                              : 'bg-card border border-border/40 rounded-tl-none'
-                          }`}
+                    {messages.map((message, index) => {
+                      // JSON 형태 레시피 메시지 파싱 시도
+                      let raw = message.content.trim();
+                      const cleaned = raw.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+                      let isRecipe = false;
+                      let recipeObj = null;
+                      if (message.role === 'assistant' && (cleaned.startsWith('{') || cleaned.startsWith('['))) {
+                        try {
+                          const parsed = JSON.parse(cleaned);
+                          const arr = Array.isArray(parsed) ? parsed : [parsed];
+                          if (arr.length > 0 && (arr[0].id || arr[0].title)) {
+                            isRecipe = true;
+                            recipeObj = arr[0];
+                          }
+                        } catch {}
+                      }
+                      if (isRecipe) {
+                        // 레시피 카드 렌더링
+                        return (
+                          <motion.div
+                            key={index}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: index * 0.05 }}
+                            className="flex justify-start"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-primary/80 text-white flex items-center justify-center text-sm mr-2 mt-3 flex-shrink-0">
+                              <ChefHat size={16} />
+                            </div>
+                            <div className="max-w-md w-full bg-card shadow-soft rounded-2xl rounded-tl-none p-5 border border-border/40">
+                              <ChatRecipeCard recipe={recipeObj} />
+                              {/* 저장/자세히 보기 버튼 */}
+                              <div className="flex justify-between mt-4 gap-3">
+                                <Button
+                                  variant="outline"
+                                  className="text-primary border-primary/30 hover:bg-primary/10 hover:text-primary flex-1"
+                                  onClick={saveRecipe}
+                                >
+                                  <Save size={16} className="mr-1" />
+                                  저장
+                                </Button>
+                                {recipeObj.id ? (
+                                  <Link href={`/recipe/${recipeObj.id}`} className="flex-1">
+                                    <Button className="bg-primary hover:bg-primary/90 w-full">자세히 보기</Button>
+                                  </Link>
+                                ) : (
+                                  <Button className="bg-primary/30 w-full" disabled>DB 저장 중...</Button>
+                                )}
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      }
+                      // 일반 텍스트 메시지 렌더링
+                      return (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.05 }}
+                          className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                         >
-                          {message.content}
-                        </div>
-                        {message.role === 'user' && (
-                          <div className="w-8 h-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-sm ml-2 flex-shrink-0">
-                            {userProfile.name[0]}
+                          {message.role === 'assistant' && (
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-primary/80 text-white flex items-center justify-center text-sm mr-2 flex-shrink-0">
+                              <ChefHat size={16} />
+                            </div>
+                          )}
+                          <div
+                            className={`max-w-md px-5 py-3 rounded-2xl shadow-sm text-base ${
+                              message.role === 'user'
+                                ? 'bg-primary text-primary-foreground rounded-tr-none'
+                                : 'bg-card border border-border/40 rounded-tl-none'
+                            }`}
+                          >
+                            {message.content}
                           </div>
-                        )}
-                      </motion.div>
-                    ))}
+                          {message.role === 'user' && (
+                            <div className="w-8 h-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-sm ml-2 flex-shrink-0">
+                              {userProfile.name[0]}
+                            </div>
+                          )}
+                        </motion.div>
+                      );
+                    })}
 
                     {/* 생성된 레시피 */}
                     {generatedRecipe && (
@@ -420,9 +519,13 @@ export default function ChatbotPage() {
                               <Save size={16} className="mr-1" />
                               저장
                             </Button>
+                            {generatedRecipe.id ? (
                             <Link href={`/recipe/${generatedRecipe.id}`} className="flex-1">
                               <Button className="bg-primary hover:bg-primary/90 w-full">자세히 보기</Button>
                             </Link>
+                            ) : (
+                              <Button className="bg-primary/30 w-full" disabled>DB 저장 중...</Button>
+                            )}
                           </div>
                         </div>
                       </motion.div>
