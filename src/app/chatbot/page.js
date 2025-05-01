@@ -133,6 +133,11 @@ export default function ChatbotPage() {
     }
     // 코드펜스 제거
     const cleaned = rawMessage.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+    // JSON 형식 판단: '{' 또는 '[' 로 시작하지 않으면 일반 대화로 처리
+    if (!cleaned.startsWith('{') && !cleaned.startsWith('[')) {
+      setMessages([...currentMessages, { role: 'assistant', content: raw }]);
+      return;
+    }
     try {
       const parsed = JSON.parse(cleaned);
       const arr = Array.isArray(parsed) ? parsed : [parsed];
@@ -143,7 +148,7 @@ export default function ChatbotPage() {
     } catch (e) {
       console.error('processResponse JSON parse error:', e, cleaned);
     }
-    // JSON이 아니거나 레시피 구조가 아니면 일반 대화로 처리
+    // 파싱에는 성공했지만 레시피 구조가 아니거나, 파싱 실패 시 일반 메시지로 처리
     setMessages([...currentMessages, { role: 'assistant', content: raw }]);
   }
 

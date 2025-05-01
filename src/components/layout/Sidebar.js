@@ -17,7 +17,7 @@ export default function Sidebar() {
   const { user } = useAuth();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get('session');
+  const currentSessionId = searchParams.get('session');
   const [expandHistory, setExpandHistory] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [chatSessions, setChatSessions] = useState([]);
@@ -28,6 +28,7 @@ export default function Sidebar() {
   }, []);
 
   useEffect(() => {
+    // mounted, user, 또는 sessionId 변경 시 세션 목록 재조회
     if (mounted && user?.id) {
       // 백엔드에서 세션 목록 가져오기
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat/session/${user.id}`, { credentials: 'include' })
@@ -35,7 +36,7 @@ export default function Sidebar() {
         .then(data => setChatSessions(data))
         .catch(err => console.error('세션 목록 조회 오류:', err));
     }
-  }, [mounted, user]);
+  }, [mounted, user, currentSessionId]);
 
   // 세션 삭제 처리
   const handleDeleteSession = async (id) => {
@@ -48,7 +49,7 @@ export default function Sidebar() {
         // 목록에서 제거
         setChatSessions(prev => prev.filter(s => s.id !== id));
         // 현재 세션 삭제된 경우 기본 화면으로 이동
-        if (sessionId === id) {
+        if (currentSessionId === id) {
           window.location.href = '/chatbot';
         }
       } catch (e) {
@@ -74,28 +75,9 @@ export default function Sidebar() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             className="flex items-center justify-center w-full py-3 px-4 bg-primary text-primary-foreground rounded-lg font-medium transition-all hover:bg-primary/90 shadow-sm"
-            onClick={async () => {
-              if (!user?.id) {
-                alert('로그인 후 이용 가능합니다.');
-                return;
-              }
-              try {
-                const res = await fetch(
-                  `${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat/session`,
-                  {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ user_id: user.id, title: '' }),
-                  }
-                );
-                if (!res.ok) throw new Error('세션 생성 실패');
-                const data = await res.json();
-                window.location.href = `/chatbot?session=${data.id}`;
-              } catch (e) {
-                console.error('새 채팅 생성 오류:', e);
-                alert('새 채팅 생성에 실패했습니다.');
-              }
+            onClick={() => {
+              // 새 채팅: 세션 생성 없이 채팅 페이지로 이동
+              window.location.href = '/chatbot';
             }}
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -134,7 +116,7 @@ export default function Sidebar() {
                         <Link
                           href={`/chatbot?session=${s.id}`}
                           className={`flex items-center flex-1 group py-2 px-3 rounded-lg text-sm transition-colors ${
-                            pathname === `/chatbot` && sessionId === s.id
+                            pathname === `/chatbot` && currentSessionId === s.id
                               ? 'bg-primary/10 text-primary' 
                               : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                           }`}
