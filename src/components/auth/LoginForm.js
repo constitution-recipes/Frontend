@@ -12,6 +12,7 @@ import { authService } from '@/lib/services/authService';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { AtSign, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 /**
  * 로그인 폼 컴포넌트
@@ -29,13 +30,14 @@ export function LoginForm() {
     }
   });
 
+  const { login } = useAuth();
+
   async function onSubmit(data) {
     setIsLoading(true);
     setError('');
 
     try {
-      await authService.login(data.email, data.password);
-      router.push('/chatbot');
+      await login(data.email, data.password);
     } catch (err) {
       setError('이메일 또는 비밀번호가 올바르지 않습니다.');
     } finally {
