@@ -142,7 +142,10 @@ export default function ChatbotPage() {
       const parsed = JSON.parse(cleaned);
       const arr = Array.isArray(parsed) ? parsed : [parsed];
       if (arr.length > 0 && (arr[0]?.id || arr[0]?.title)) {
+        // 레시피 카드로 표시
         setGeneratedRecipe(arr[0]);
+        // JSON 메시지는 채팅 리스트에서 제거
+        setMessages(currentMessages.filter(m => m.content.trim() !== rawMessage));
         return;
       }
     } catch (e) {
