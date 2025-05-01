@@ -2,3 +2,5 @@
 ansik_app_mvp/ 
 node_modules/
 .next
+.env
+.env.local
