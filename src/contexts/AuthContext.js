@@ -97,7 +97,7 @@ export function AuthProvider({ children }) {
     authService.logout();
     setUser(null);
     toast.success('로그아웃되었습니다.');
-    router.push('/auth/login');
+    router.push('/');
   };
 
   // Context에 제공할 값

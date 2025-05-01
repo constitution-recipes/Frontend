@@ -15,11 +15,13 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function NavBar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { logout } = useAuth();
   
   // 스크롤 감지
   useEffect(() => {
@@ -45,11 +47,10 @@ export default function NavBar() {
   }
 
   const menus = [
-    { name: '홈', icon: <Home className="w-5 h-5" />, href: '/' },
+    { name: '챗봇', icon: <MessageSquare className="w-5 h-5" />, href: '/chatbot' },
     { name: '맞춤 레시피', icon: <ChefHat className="w-5 h-5" />, href: '/recommend_recipes' },
     { name: '저장함', icon: <Heart className="w-5 h-5" />, href: '/saved' },
     { name: '프로필', icon: <User className="w-5 h-5" />, href: '/profile' },
-    { name: '챗봇', icon: <MessageSquare className="w-5 h-5" />, href: '/chatbot' },
   ];
 
   return (
@@ -98,9 +99,7 @@ export default function NavBar() {
                 variant="ghost"
                 size="sm"
                 className="text-muted-foreground hover:text-destructive/90 hover:bg-destructive/10" 
-                onClick={() => {
-                  window.location.href = '/auth/login';
-                }}
+                onClick={logout}
               >
                 <LogOut className="w-4 h-4 mr-2" />
                 <span>로그아웃</span>
@@ -150,9 +149,7 @@ export default function NavBar() {
               
               <button
                 className="flex items-center px-4 py-3 rounded-lg text-base font-medium text-destructive/80 hover:bg-destructive/10 transition-all"
-                onClick={() => {
-                  window.location.href = '/auth/login';
-                }}
+                onClick={logout}
               >
                 <LogOut className="w-5 h-5 mr-3" />
                 <span>로그아웃</span>
