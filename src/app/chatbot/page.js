@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -72,7 +72,7 @@ const dummyRecipes = [
   }
 ];
 
-export default function ChatbotPage() {
+function ChatbotPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   // URL 쿼리에서 초기 sessionId 가져오기
@@ -606,5 +606,13 @@ export default function ChatbotPage() {
         )}
       </div>
     </SidebarLayout>
+  );
+}
+
+export default function ChatbotPage() {
+  return (
+    <Suspense fallback={<div>로딩 중...</div>}>
+      <ChatbotPageInner />
+    </Suspense>
   );
 } 
