@@ -166,21 +166,22 @@ export function SignupForm() {
     setIsLoading(true);
     setError('');
 
-    // 회원가입 기본 정보와 프로필 정보를 합쳐 요청
+    // 회원가입 기본 정보와 프로필 정보를 alias 기반 camelCase 키로 합쳐 요청
     const userData = {
       name: signupData.name,
       email: signupData.email,
       password: signupData.password,
-      phone_number: signupData.phoneNumber,
+      phoneNumber: signupData.phoneNumber,
       allergies: profileData.allergies,
-      health_status: profileData.currentHealthStatus,
-      illnesses: profileData.existingConditions || "",
-      health_goals: profileData.healthGoals
+      healthStatus: profileData.currentHealthStatus,
+      existingConditions: profileData.existingConditions || "",
+      healthGoals: profileData.healthGoals
     };
 
     try {
       await authService.signup(userData);
-      router.push('/recommend_recipes');
+      // 회원가입 후 체질 진단 소개 페이지로 이동
+      router.push('/constitution-intro');
     } catch (err) {
       if (err.response?.status === 409) {
         setError('이미 사용 중인 이메일입니다.');
