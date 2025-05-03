@@ -6,7 +6,8 @@ import { RecipeCard } from '@/components/recipe/RecipeCard';
 import { Button } from '@/components/ui/button';
 import { Heart } from 'lucide-react';
 import SidebarLayout from '@/components/layout/SidebarLayout';
-
+import { useAuth } from '@/contexts/AuthContext';
+import { fetchBookmarks } from '@/lib/utils/bookmarkApi';
 // 더미 레시피 데이터 (실제 API 호출로 대체 예정)
 const dummyRecipes = [
   {
@@ -60,15 +61,38 @@ const dummyRecipes = [
 ];
 
 export default function SavedRecipesPage() {
+  const { isAuthenticated } = useAuth();
+  const accessToken = typeof window !== 'undefined' ? require('@/lib/services/authService').authService.getToken() : null;
   const [savedIds, setSavedIds] = useState([]);
   const [savedRecipes, setSavedRecipes] = useState([]);
 
   useEffect(() => {
-    // localStorage에서 저장된 레시피 id 불러오기
-    const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
-    setSavedIds(saved);
-    setSavedRecipes(dummyRecipes.filter(r => saved.includes(r.id)));
-  }, []);
+    if (isAuthenticated && accessToken) {
+      // 서버에서 북마크 목록을 불러오고, 각 recipe_id로 레시피 상세 정보 요청
+      fetchBookmarks(accessToken)
+        .then(async (bookmarks) => {
+          setSavedIds(bookmarks.map(b => b.recipe_id));
+          // 여러 레시피 상세정보 병렬 요청
+          const recipeDetails = await Promise.all(
+            bookmarks.map(bm =>
+              fetch(`/api/v1/recipes/${bm.recipe_id}`)
+                .then(res => res.ok ? res.json() : null)
+                .catch(() => null)
+            )
+          );
+          setSavedRecipes(recipeDetails.filter(Boolean));
+        })
+        .catch(() => {
+          setSavedIds([]);
+          setSavedRecipes([]);
+        });
+    } else {
+      // 비로그인 fallback: localStorage
+      const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
+      setSavedIds(saved);
+      setSavedRecipes(dummyRecipes.filter(r => saved.includes(r.id)));
+    }
+  }, [isAuthenticated, accessToken]);
 
   return (
     <SidebarLayout>
