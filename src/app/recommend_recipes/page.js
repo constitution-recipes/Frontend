@@ -41,8 +41,8 @@ export default function RecommendRecipesPage() {
   const [activeFilter, setActiveFilter] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // const API_URL = "http://constitution-recipe.shop/api";
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  const API_URL = "http://constitution-recipe.shop/api";
+  // const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   // 북마크 목록 불러오기
   const fetchAndSetBookmarks = async () => {

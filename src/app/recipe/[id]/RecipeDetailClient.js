@@ -25,8 +25,8 @@ export default function RecipeDetailClient({ id }) {
   const { isAuthenticated } = useAuth();
   const accessToken = typeof window !== 'undefined' ? require('@/lib/services/authService').authService.getToken() : null;
 
-  // const API_URL = "http://constitution-recipe.shop/api";
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  const API_URL = "http://constitution-recipe.shop/api";
+  // const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   useEffect(() => {
     fetch(`${API_URL}/api/v1/recipes/${id}`)

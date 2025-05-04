@@ -73,8 +73,8 @@ export default function SavedRecipesPage() {
     // }, []);
   // 북마크 목록과 레시피 상세정보를 불러오는 함수
   const fetchAndSetBookmarks = async () => {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL;
-    // const API_URL = "http://constitution-recipe.shop/api";
+    // const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    const API_URL = "http://constitution-recipe.shop/api";
     if (isAuthenticated && accessToken) {
       // 서버에서 북마크 목록을 불러오고, 각 recipe_id로 레시피 상세 정보 요청
       fetchBookmarks(accessToken)
