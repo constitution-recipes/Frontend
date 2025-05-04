@@ -198,7 +198,9 @@ export function SignupForm() {
 
     try {
       await authService.signup(userData);
-      // 회원가입 후 체질 진단 소개 페이지로 이동
+      // 회원가입 후 자동 로그인
+      await authService.login(userData.email, userData.password);
+      // 로그인 성공 후 체질 진단 소개 페이지로 이동
       router.push('/constitution-intro');
     } catch (err) {
       if (err.response?.status === 409) {
