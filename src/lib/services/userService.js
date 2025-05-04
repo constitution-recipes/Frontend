@@ -13,9 +13,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
  */
 const getAuthConfig = () => {
   const token = authService.getToken();
+  if (!token) {
+    throw new Error('No auth token found. 로그인 후에만 호출하세요.');
+  }
   return {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    withCredentials: true, // 쿠키 전송 허용
+    headers: { Authorization: `Bearer ${token}` },
+    withCredentials: true,
   };
 };
 
@@ -45,6 +48,8 @@ export const userService = {
    */
   async getCurrentUser() {
     try {
+      const token = authService.getToken();
+      console.log('getCurrentUser() - token:', token);
       const response = await axios.get(`${API_URL}/api/v1/users/me`, getAuthConfig());
       return UserModel.fromJSON(response.data);
     } catch (error) {
