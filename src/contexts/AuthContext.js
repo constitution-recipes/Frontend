@@ -61,6 +61,12 @@ export function AuthProvider({ children }) {
     setIsLoading(true);
     try {
       await authService.login(email, password);
+      // 토큰이 실제로 저장될 때까지 대기 (최대 500ms)
+      const start = Date.now();
+      while (!authService.getToken()) {
+        if (Date.now() - start > 500) break;
+        await new Promise(res => setTimeout(res, 10));
+      }
       const currentUser = await userService.getCurrentUser();
       setUser(currentUser);
       toast.success('로그인에 성공했습니다!');

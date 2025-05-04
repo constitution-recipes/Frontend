@@ -204,14 +204,15 @@ export function SignupForm() {
       await authService.signup(userData);
       // 2. 자동 로그인
       await authService.login(signupData.email, signupData.password);
-      // 3. 이동
-      router.push('/constitution-intro');
+      // 3. 토큰이 실제로 저장될 때까지 대기 (최대 500ms)
+      const start = Date.now();
+      while (!authService.getToken()) {
+        if (Date.now() - start > 500) break;
+        await new Promise(res => setTimeout(res, 10));
+      }
+      // 4. 체질진단으로 이동
+      router.push('/constitution-diagnosis');
     } catch (err) {
-      // if (err.response?.status === 409) {
-      //   setError('이미 사용 중인 이메일입니다.');
-      // } else {
-      //   setError('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
-      // }
       setError('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
     } finally {
       setIsLoading(false);
