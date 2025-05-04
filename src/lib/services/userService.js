@@ -6,7 +6,7 @@ import { UserModel } from '../models/userModel';
 
 // API URL 설정
 // const API_URL = process.env.NEXT_PUBLIC_API_URL;
-const API_URL = "http://constitution-recipe.shop/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 /**
  * API 요청에 인증 헤더 및 쿠키 전송 설정 추가

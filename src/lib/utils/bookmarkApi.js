@@ -1,5 +1,5 @@
 // const API_URL = process.env.NEXT_PUBLIC_API_URL;
-const API_URL = "http://constitution-recipe.shop/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 console.log('API_URL:', API_URL);
 
 // 북마크 추가

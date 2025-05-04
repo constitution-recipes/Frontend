@@ -5,8 +5,8 @@ import Cookies from 'js-cookie';
 import qs from 'qs';
 
 // API URL 설정
+// const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
-// const API_URL = "http://constitution-recipe.shop/api";
 const AUTH_COOKIE_NAME = process.env.NEXT_PUBLIC_AUTH_COOKIE_NAME || 'auth_token';
 
 /**
