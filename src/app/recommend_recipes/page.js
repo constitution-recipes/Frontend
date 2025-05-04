@@ -41,6 +41,9 @@ export default function RecommendRecipesPage() {
   const [activeFilter, setActiveFilter] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // const API_URL = "http://constitution-recipe.shop/api";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
   // 북마크 목록 불러오기
   const fetchAndSetBookmarks = async () => {
     if (isAuthenticated && accessToken) {
@@ -61,7 +64,6 @@ export default function RecommendRecipesPage() {
   }, [isAuthenticated, accessToken]);
 
   useEffect(() => {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
     // 백엔드에서 모든 레시피 조회
     fetch(`${API_URL}/api/v1/recipes/get_all_recipes`)
       .then(res => res.json())
