@@ -5,29 +5,76 @@ import { Clock, Star, ChefHat, Tag, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { addBookmark, removeBookmark } from '@/lib/utils/bookmarkApi';
 
-export function RecipeCard({ recipe }) {
+export function RecipeCard({ recipe, isSaved, onBookmarkChange }) {
   const { id, title, description, difficulty, cookTime, image, rating, suitableFor, tags } = recipe;
-  const [isSaved, setIsSaved] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const accessToken = typeof window !== 'undefined' ? require('@/lib/services/authService').authService.getToken() : null;
+  const [loading, setLoading] = useState(false);
   
   // 마운트 시 localStorage에서 저장 여부 확인
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
-    setIsSaved(saved.includes(id));
-  }, [id]);
+  //   const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
+  //   setIsSaved(saved.includes(id));
+  // }, [id]);
+    if (isAuthenticated && accessToken) {
+      // 서버에서 북마크 목록을 받아와서 체크하는 로직을 추가할 수도 있음
+      // 여기서는 단순히 localStorage fallback 유지
+      // 실제로는 상위에서 북마크 목록을 prop으로 내려주는 게 더 좋음
+    } else {
+      const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
+      setIsSaved(saved.includes(id));
+    }
+  }, [id, isAuthenticated, accessToken]);
   
   // 하트 클릭 시 저장/해제
-  const handleSave = (e) => {
-    e.preventDefault(); // 클릭 이벤트가 Link로 전파되는 것을 방지
-    const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
-    let updated;
-    if (isSaved) {
-      updated = saved.filter(savedId => savedId !== id);
-    } else {
-      updated = [...saved, id];
+  
+  // const handleSave = (e) => {
+  //   e.preventDefault(); // 클릭 이벤트가 Link로 전파되는 것을 방지
+  //   const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
+  //   let updated;
+  //   if (isSaved) {
+  //     updated = saved.filter(savedId => savedId !== id);
+  //   } else {
+  //     updated = [...saved, id];
+  //   }
+  //   localStorage.setItem('savedRecipes', JSON.stringify(updated));
+  //   setIsSaved(!isSaved);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    console.log('isAuthenticated:', isAuthenticated, 'accessToken:', accessToken);
+    if (!isAuthenticated || !accessToken) {
+      // 비로그인 fallback: localStorage
+      const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
+      let updated;
+      if (isSaved) {
+        updated = saved.filter(savedId => savedId !== id);
+      } else {
+        updated = [...saved, id];
+      }
+      localStorage.setItem('savedRecipes', JSON.stringify(updated));
+      if (typeof onBookmarkChange === 'function') {
+        onBookmarkChange();
+      }
+      return;
     }
-    localStorage.setItem('savedRecipes', JSON.stringify(updated));
-    setIsSaved(!isSaved);
+    setLoading(true);
+    try {
+      if (isSaved) {
+        await removeBookmark(id, accessToken);
+      } else {
+        await addBookmark(id, accessToken);
+      }
+    } catch (err) {
+      alert(err.message || '북마크 처리 중 오류 발생');
+    }
+    setLoading(false);
+    if (typeof onBookmarkChange === 'function') {
+      onBookmarkChange();
+    }
   };
   
   // 난이도에 따른 색상 설정

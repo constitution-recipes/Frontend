@@ -30,6 +30,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ChatbotIntro from './ChatbotIntro';
 import { useAuth } from '@/contexts/AuthContext';
+import { Textarea } from '@/components/ui/textarea';
 
 // 가상의 사용자 정보 (실제로는 로그인 상태에서 가져옵니다)
 const userProfile = {
@@ -93,13 +94,24 @@ function ChatbotPageInner() {
   const [showOptions, setShowOptions] = useState(false);
   const [useProfile, setUseProfile] = useState(true);
   const [initialState, setInitialState] = useState(true);
+  const [error, setError] = useState(null);
   
   const messagesEndRef = useRef(null);
+  const textareaRef = useRef(null);
 
   // 메시지가 추가될 때마다 스크롤을 맨 아래로 이동
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, generatedRecipe]);
+
+  // 텍스트에리어 초기 높이 설정
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const computedHeight = Math.min(textarea.scrollHeight, 150);
+      textarea.style.height = `${computedHeight}px`;
+    }
+  }, []);
 
   // sessionId가 변경될 때마다 백엔드에서 메시지 로드
   useEffect(() => {
@@ -157,6 +169,8 @@ function ChatbotPageInner() {
     e.preventDefault();
     if (!input.trim()) return;
     console.log(`[DEBUG][ChatPage] handleSubmit called with sessionId: ${sessionId}, user: ${user?.id}`);
+    setError(null);
+    
     // 세션이 없으면 생성 (첫 메시지도 저장할 수 있게 return 제거)
     let currentSessionId = sessionId;
     if (!currentSessionId) {
@@ -171,7 +185,16 @@ function ChatbotPageInner() {
             body: JSON.stringify({ user_id: user.id, title: '' }),
           }
         );
-        if (!sessRes.ok) throw new Error('세션 생성 실패');
+        if (!sessRes.ok) {
+          const errorMsg = `세션 생성 실패 (${sessRes.status})`;
+          console.error(errorMsg);
+          setError({
+            title: '세션 생성 오류',
+            message: '채팅 세션을 만들 수 없습니다. 잠시 후 다시 시도해주세요.',
+            code: sessRes.status
+          });
+          throw new Error(errorMsg);
+        }
         const sessData = await sessRes.json();
         currentSessionId = sessData.id;
         console.log(`[DEBUG][ChatPage] New session created: ${currentSessionId}`);
@@ -180,6 +203,13 @@ function ChatbotPageInner() {
         setSessionId(currentSessionId);
       } catch (err) {
         console.error('세션 생성 오류:', err);
+        if (!error) {
+          setError({
+            title: '연결 오류',
+            message: '채팅 서비스에 연결할 수 없습니다. 네트워크 연결을 확인하고 다시 시도해주세요.',
+            code: 'NETWORK_ERROR'
+          });
+        }
         return;
       }
     }
@@ -206,11 +236,28 @@ function ChatbotPageInner() {
         }
       );
       console.log('handleSubmit response raw:', res);
-      if (!res.ok) throw new Error('API error');
+      if (!res.ok) {
+        const errorCode = res.status;
+        const errorMsg = `API 오류 (${errorCode})`;
+        setError({
+          title: '응답 오류',
+          message: '레시피 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+          code: errorCode
+        });
+        throw new Error(errorMsg);
+      }
       const { message: rawMessage } = await res.json();
       console.log('handleSubmit response json:', rawMessage);
       processResponse(rawMessage, updated);
     } catch (err) {
+      console.error('채팅 요청 오류:', err);
+      if (!error) {
+        setError({
+          title: '오류 발생',
+          message: '요청을 처리하는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+          code: err.message || 'UNKNOWN_ERROR'
+        });
+      }
       setMessages([
         ...updated,
         { role: 'assistant', content: '오류가 발생했습니다. 나중에 다시 시도해주세요.' },
@@ -304,9 +351,20 @@ function ChatbotPageInner() {
     return () => window.removeEventListener('openChatOptions', handler);
   }, []);
 
+  const handleInputChange = (e) => {
+    setInput(e.target.value);
+    // 텍스트 입력에 따른 높이 자동 조정
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      const computedHeight = Math.min(textarea.scrollHeight, 150);
+      textarea.style.height = `${computedHeight}px`;
+    }
+  };
+
   return (
     <SidebarLayout>
-      <div className="flex flex-col h-full min-h-screen w-full bg-gradient-primary relative">
+      <div className="flex flex-col h-full min-h-screen w-full bg-gradient-to-b from-background to-primary/5 relative">
         {/* 채팅 시작 전: 중앙 인풋 + 기능 카드 */}
         {initialState && (
           <ChatbotIntro
@@ -320,6 +378,45 @@ function ChatbotPageInner() {
         {/* 기존 챗봇 UI: 채팅 시작 후 */}
         {!initialState && (
           <div className="flex flex-col h-full w-full flex-1 min-h-0 pt-16">
+            {/* 오류 알림 */}
+            <AnimatePresence>
+              {error && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="max-w-3xl w-full mx-auto mt-4 mb-2 px-4"
+                >
+                  <div className="bg-destructive/10 border border-destructive/30 text-destructive rounded-lg p-4 flex items-start">
+                    <div className="flex-shrink-0 mr-3 mt-0.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-medium">{error.title}</h3>
+                      <p className="text-sm mt-1">{error.message}</p>
+                      {error.code && (
+                        <p className="text-xs mt-1 opacity-70">
+                          오류 코드: {error.code}
+                        </p>
+                      )}
+                    </div>
+                    <button 
+                      className="ml-auto -mr-1 flex-shrink-0 text-destructive hover:text-destructive/80"
+                      onClick={() => setError(null)}
+                    >
+                      <span className="sr-only">닫기</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* 옵션 패널 - 모달 */}
             <AnimatePresence>
               {showOptions && (
@@ -474,7 +571,7 @@ function ChatbotPageInner() {
                           transition={{ duration: 0.3, delay: index * 0.05 }}
                           className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                         >
-                          {message.role === 'assistant' && (
+                          {message.role !== 'user' && message.role === 'assistant' && (
                             <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-primary/80 text-white flex items-center justify-center text-sm mr-2 flex-shrink-0">
                               <ChefHat size={16} />
                             </div>
@@ -483,9 +580,12 @@ function ChatbotPageInner() {
                             className={`max-w-md px-5 py-3 rounded-2xl shadow-sm text-base ${
                               message.role === 'user'
                                 ? 'bg-primary text-primary-foreground rounded-tr-none'
-                                : 'bg-card border border-border/40 rounded-tl-none'
+                                : 'bg-white border border-border/40 rounded-tl-none'
                             }`}
                           >
+                            {message.role !== 'user' && message.role === 'assistant' && (
+                              <p className="text-xs text-primary mb-1 font-medium">AI 요리사</p>
+                            )}
                             {message.content}
                           </div>
                           {message.role === 'user' && (
@@ -542,14 +642,17 @@ function ChatbotPageInner() {
                         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-primary/80 text-white flex items-center justify-center text-sm mr-2 flex-shrink-0">
                           <ChefHat size={16} />
                         </div>
-                        <div className="bg-card p-4 rounded-xl rounded-tl-none shadow-sm border border-border/40">
-                          <div className="flex items-center space-x-3">
-                            <div className="flex space-x-1">
-                              <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-                              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '0.2s' }}></span>
-                              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '0.4s' }}></span>
+                        <div className="bg-white p-4 rounded-xl rounded-tl-none shadow-sm border border-border/40">
+                          <div className="flex flex-col">
+                            <p className="text-xs text-primary mb-1 font-medium">AI 요리사</p>
+                            <div className="flex items-center space-x-3">
+                              <div className="flex space-x-1">
+                                <span className="h-2 w-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                <span className="h-2 w-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                <span className="h-2 w-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                              </div>
+                              <p className="text-sm text-muted-foreground">레시피 생성 중...</p>
                             </div>
-                            <p className="text-sm text-muted-foreground">답변 생성 중...</p>
                           </div>
                         </div>
                       </motion.div>
@@ -562,23 +665,48 @@ function ChatbotPageInner() {
               </div>
 
               {/* 입력 영역 (항상 화면 하단 고정) */}
-              <div className="fixed bottom-0 left-0 right-0 md:left-72 bg-card/95 backdrop-blur-sm border-t border-border/40 py-4 px-4 z-40 shadow-[0_-2px_10px_0_rgba(0,0,0,0.05)]">
+              <div className="fixed bottom-0 left-0 right-0 md:left-72 bg-white/95 backdrop-blur-sm border-t border-border/40 py-4 px-4 z-40 shadow-[0_-2px_10px_0_rgba(0,0,0,0.05)]">
                 <div className="max-w-3xl mx-auto">
-                  <form onSubmit={handleSubmit} className="flex items-center gap-2">
+                  <motion.form
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    onSubmit={handleSubmit}
+                    className="flex items-end gap-2"
+                  >
                     <div className="relative flex-1">
-                      <Input
+                      <Textarea
+                        ref={textareaRef}
                         value={input}
-                        onChange={(e) => setInput(e.target.value)}
+                        onChange={handleInputChange}
                         placeholder="AI 요리사에게 무엇이든 물어보세요! 🍳"
-                        className="pl-4 pr-10 py-5 rounded-full bg-muted border-none shadow-sm text-base focus:ring-2 focus:ring-primary/30"
+                        className="pl-5 pr-10 py-4 min-h-[56px] max-h-[150px] rounded-full bg-muted border-none shadow-sm text-base focus:ring-2 focus:ring-primary/30 resize-none overflow-y-auto"
                         disabled={loading}
                         autoComplete="off"
+                        rows={1}
+                        style={{
+                          paddingRight: '3rem',
+                          lineHeight: '1.5',
+                          transition: 'height 0.2s ease'
+                        }}
+                        onKeyDown={(e) => {
+                          // Enter 키로 제출 (Shift+Enter는 줄바꿈)
+                          if (e.key === 'Enter' && !e.shiftKey && !loading && input.trim()) {
+                            e.preventDefault();
+                            handleSubmit(e);
+                          }
+                        }}
                       />
                       {input && (
                         <button
                           type="button"
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
-                          onClick={() => setInput('')}
+                          onClick={() => {
+                            setInput('');
+                            if (textareaRef.current) {
+                              textareaRef.current.style.height = '56px';
+                            }
+                          }}
                         >
                           <XCircle className="h-5 w-5" />
                         </button>
@@ -587,18 +715,19 @@ function ChatbotPageInner() {
                     <Button
                       type="submit"
                       disabled={loading || !input.trim()}
-                      className="rounded-full bg-primary hover:bg-primary/90 shadow-md w-12 h-12 flex items-center justify-center p-0"
+                      className="rounded-full bg-primary hover:bg-primary/90 shadow-md w-14 h-14 flex items-center justify-center p-0 flex-shrink-0"
                     >
                       {loading ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <Loader2 className="h-6 w-6 animate-spin" />
                       ) : (
-                        <Send className="h-5 w-5" />
+                        <Send className="h-6 w-6" />
                       )}
                     </Button>
-                  </form>
-                  <p className="mt-2 text-xs text-muted-foreground text-center">
-                    건강 정보, 선호하는 음식, 필요한 영양소 등을 자세히 알려주시면 더 맞춤화된 레시피를 제공해드립니다.
-                  </p>
+                  </motion.form>
+                  <div className="mt-3 flex justify-center items-center space-x-2 text-xs text-muted-foreground">
+                    <ChefHat className="h-3 w-3" />
+                    <p>건강 정보, 선호 음식, 영양소 등을 자세히 알려주시면 더 맞춤화된 레시피를 제공해드립니다. <span className="bg-gray-100 px-1 py-0.5 rounded text-xs ml-1">Shift+Enter</span>로 줄바꿈</p>
+                  </div>
                 </div>
               </div>
             </div>

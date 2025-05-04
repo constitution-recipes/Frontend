@@ -16,10 +16,15 @@ import SidebarLayout from '@/components/layout/SidebarLayout';
 import { motion } from 'framer-motion';
 import { Check, ChevronDown, Search, Clock, Utensils, User } from 'lucide-react';
 import Link from 'next/link';
+import { fetchBookmarks } from '@/lib/utils/bookmarkApi';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function RecommendRecipesPage() {
   const [recipes, setRecipes] = useState([]);
   const [filteredRecipes, setFilteredRecipes] = useState([]);
+  const [savedIds, setSavedIds] = useState([]);
+  const { isAuthenticated } = useAuth();
+  const accessToken = typeof window !== 'undefined' ? require('@/lib/services/authService').authService.getToken() : null;
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState([]);
   const [bodyType, setBodyType] = useState('');
@@ -35,6 +40,25 @@ export default function RecommendRecipesPage() {
 
   const [activeFilter, setActiveFilter] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // 북마크 목록 불러오기
+  const fetchAndSetBookmarks = async () => {
+    if (isAuthenticated && accessToken) {
+      try {
+        const bookmarks = await fetchBookmarks(accessToken);
+        setSavedIds(bookmarks.map(b => b.recipe_id));
+      } catch {
+        setSavedIds([]);
+      }
+    } else {
+      const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
+      setSavedIds(saved);
+    }
+  };
+
+  useEffect(() => {
+    fetchAndSetBookmarks();
+  }, [isAuthenticated, accessToken]);
 
   useEffect(() => {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
@@ -416,7 +440,12 @@ export default function RecommendRecipesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredRecipes.length > 0 ? (
                     filteredRecipes.map(recipe => (
-                      <RecipeCard key={recipe.id} recipe={recipe} bodyType={bodyType} />
+                      <RecipeCard
+                        key={recipe.id}
+                        recipe={recipe}
+                        isSaved={savedIds.includes(recipe.id)}
+                        onBookmarkChange={fetchAndSetBookmarks}
+                      />
                     ))
                   ) : (
                     <div className="col-span-3 text-center py-12">
@@ -434,7 +463,12 @@ export default function RecommendRecipesPage() {
                     filteredRecipes
                       .filter(r => Array.isArray(r.suitableBodyTypes) && r.suitableBodyTypes.includes(bodyType))
                       .map(recipe => (
-                        <RecipeCard key={recipe.id} recipe={recipe} bodyType={bodyType} />
+                        <RecipeCard
+                          key={recipe.id}
+                          recipe={recipe}
+                          isSaved={savedIds.includes(recipe.id)}
+                          onBookmarkChange={fetchAndSetBookmarks}
+                        />
                       ))
                   ) : (
                     <div className="col-span-3 text-center py-12">
@@ -452,7 +486,12 @@ export default function RecommendRecipesPage() {
                     filteredRecipes
                       .filter(r => r.trending)
                       .map(recipe => (
-                        <RecipeCard key={recipe.id} recipe={recipe} bodyType={bodyType} />
+                        <RecipeCard
+                          key={recipe.id}
+                          recipe={recipe}
+                          isSaved={savedIds.includes(recipe.id)}
+                          onBookmarkChange={fetchAndSetBookmarks}
+                        />
                       ))
                   ) : (
                     <div className="col-span-3 text-center py-12">
