@@ -1,39 +1,71 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { motion } from 'framer-motion';
-import { User, Mail, Phone, Calendar, Edit, Save, X } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import userService from '@/lib/services/userService';
+import { User, Mail, Phone, Heart, Edit, Save, X, AlertCircle, CheckCircle2, ListTodo, Clock } from 'lucide-react';
+import ConstitutionCard from '@/components/common/ConstitutionCard';
 
 export default function ProfilePage() {
+  const { user, refreshUser } = useAuth();
+  const { toast } = useToast();
   const [editing, setEditing] = useState(false);
   const [profile, setProfile] = useState({
-    name: '홍길동',
-    email: 'user@example.com',
-    phone: '010-1234-5678',
-    birthdate: '1990-01-01',
-    gender: '남성',
-    height: 175,
-    weight: 70,
-    medicalConditions: ['고혈압', '당뇨병 전단계'],
-    dietaryRestrictions: ['견과류 알레르기'],
-    preferences: ['한식', '저염식', '채식']
+    allergies: [],
+    currentHealthStatus: '',
+    healthGoals: [],
+    existingConditions: ''
   });
+
+  useEffect(() => {
+    if (user) {
+      setProfile({
+        allergies: user.allergies || [],
+        currentHealthStatus: user.currentHealthStatus || '',
+        healthGoals: user.healthGoals || [],
+        existingConditions: user.existingConditions || ''
+      });
+    }
+  }, [user]);
 
   const handleEdit = () => {
     setEditing(true);
   };
 
   const handleCancel = () => {
+    if (user) {
+      setProfile({
+        allergies: user.allergies || [],
+        currentHealthStatus: user.currentHealthStatus || '',
+        healthGoals: user.healthGoals || [],
+        existingConditions: user.existingConditions || ''
+      });
+    }
     setEditing(false);
   };
 
-  const handleSave = () => {
-    // 실제 구현에서는 API 호출 등으로 저장
-    setEditing(false);
-    alert('프로필이 저장되었습니다.');
+  const handleSave = async () => {
+    try {
+      await userService.updateProfile(profile);
+      await refreshUser();
+      setEditing(false);
+      toast({
+        title: "프로필 업데이트",
+        description: "프로필이 성공적으로 업데이트되었습니다.",
+      });
+    } catch (error) {
+      console.error('프로필 업데이트 오류:', error);
+      toast({
+        title: "오류 발생",
+        description: "프로필 업데이트 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleChange = (e) => {
@@ -44,254 +76,346 @@ export default function ProfilePage() {
     }));
   };
 
+  const handleAllergiesChange = (e) => {
+    const allergiesArray = e.target.value.split(',').map(item => item.trim()).filter(Boolean);
+    setProfile(prev => ({
+      ...prev,
+      allergies: allergiesArray
+    }));
+  };
+
+  const handleHealthGoalsChange = (e) => {
+    const goalsArray = e.target.value.split(',').map(item => item.trim()).filter(Boolean);
+    setProfile(prev => ({
+      ...prev,
+      healthGoals: goalsArray
+    }));
+  };
+
+  if (!user) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 mx-auto relative">
+            <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping"></div>
+            <div className="relative w-full h-full flex items-center justify-center bg-primary/10 rounded-full">
+              <Clock className="w-8 h-8 text-primary" />
+            </div>
+          </div>
+          <p className="text-lg font-medium text-muted-foreground">프로필 정보를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 체질 여부에 따른 배경 그라데이션 설정
+  const hasConstitution = !!user.constitution;
+  const gradientBg = hasConstitution 
+    ? 'bg-gradient-to-br from-teal-50 via-green-50 to-emerald-50'
+    : 'bg-gradient-to-br from-gray-50 via-slate-50 to-gray-100';
+
   return (
-    <div className="container max-w-5xl py-8 px-4 md:px-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* 왼쪽 프로필 카드 */}
-          <div className="w-full md:w-1/3">
-            <div className="card shadow-md bg-white border-border/30">
-              <div className="flex flex-col items-center text-center">
-                <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+    <div className={`min-h-screen ${gradientBg} py-8 px-4 sm:px-6 md:px-8`}>
+      <div className="max-w-4xl mx-auto">
+        {/* 프로필 헤더 */}
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-8 border border-gray-200">
+          <div className="relative h-32 bg-gradient-to-r from-primary via-primary/90 to-primary/80">
+            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/20 to-transparent"></div>
+          </div>
+          
+          <div className="px-6 pb-6 relative">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-12 mb-6">
+              <div className="w-24 h-24 rounded-full bg-white p-1.5 shadow-md">
+                <div className="w-full h-full rounded-full bg-primary/10 flex items-center justify-center">
                   <User className="w-12 h-12 text-primary" />
                 </div>
-                <h2 className="text-xl font-semibold">{profile.name}</h2>
-                <p className="text-muted-foreground text-sm">{profile.email}</p>
-
-                <div className="mt-6 w-full">
-                  <div className="flex justify-between py-2 border-b border-border/40">
-                    <span className="text-muted-foreground">계정 타입</span>
-                    <span className="font-medium">기본 회원</span>
+              </div>
+              
+              <div className="sm:mb-2">
+                <h1 className="text-2xl font-bold">{user.name}</h1>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-muted-foreground mt-1">
+                  <div className="flex items-center gap-1.5">
+                    <Mail className="w-4 h-4" />
+                    <span>{user.email}</span>
                   </div>
-                  <div className="flex justify-between py-2 border-b border-border/40">
-                    <span className="text-muted-foreground">가입일</span>
-                    <span className="font-medium">2023.09.15</span>
-                  </div>
-                  <div className="flex justify-between py-2">
-                    <span className="text-muted-foreground">상태</span>
-                    <span className="font-medium text-primary">활성</span>
-                  </div>
-                </div>
-
-                <div className="mt-6 w-full">
-                  {!editing ? (
-                    <Button 
-                      onClick={handleEdit} 
-                      className="w-full"
-                      variant="outline"
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      프로필 수정
-                    </Button>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={handleSave} 
-                        className="flex-1"
-                      >
-                        <Save className="w-4 h-4 mr-2" />
-                        저장
-                      </Button>
-                      <Button 
-                        onClick={handleCancel} 
-                        variant="outline"
-                        className="flex-1"
-                      >
-                        <X className="w-4 h-4 mr-2" />
-                        취소
-                      </Button>
+                  {user.phoneNumber && (
+                    <div className="flex items-center gap-1.5">
+                      <Phone className="w-4 h-4" />
+                      <span>{user.phoneNumber}</span>
                     </div>
                   )}
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* 오른쪽 상세 정보 */}
-          <div className="w-full md:w-2/3">
-            <div className="card shadow-md bg-white border-border/30">
-              <h3 className="text-xl font-semibold mb-6 text-foreground">개인 정보</h3>
               
-              <div className="space-y-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground text-sm">이름</Label>
-                    {editing ? (
-                      <Input 
-                        name="name"
-                        value={profile.name}
-                        onChange={handleChange}
-                        className="border-border/40"
-                      />
-                    ) : (
-                      <div className="flex items-center py-2">
-                        <User className="w-4 h-4 text-muted-foreground mr-2" />
-                        <span>{profile.name}</span>
-                      </div>
-                    )}
+              <div className="ml-auto mt-2 sm:mt-0">
+                {!editing ? (
+                  <Button onClick={handleEdit} size="sm" variant="outline" className="shadow-sm gap-1.5">
+                    <Edit className="h-4 w-4" /> 프로필 수정
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button onClick={handleCancel} size="sm" variant="ghost" className="gap-1.5">
+                      <X className="h-4 w-4" /> 취소
+                    </Button>
+                    <Button onClick={handleSave} size="sm" variant="default" className="shadow-sm gap-1.5">
+                      <Save className="h-4 w-4" /> 저장
+                    </Button>
                   </div>
+                )}
+              </div>
+            </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground text-sm">이메일</Label>
-                    {editing ? (
-                      <Input 
-                        name="email"
-                        value={profile.email}
-                        onChange={handleChange}
-                        className="border-border/40"
-                      />
-                    ) : (
-                      <div className="flex items-center py-2">
-                        <Mail className="w-4 h-4 text-muted-foreground mr-2" />
-                        <span>{profile.email}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground text-sm">전화번호</Label>
-                    {editing ? (
-                      <Input 
-                        name="phone"
-                        value={profile.phone}
-                        onChange={handleChange}
-                        className="border-border/40"
-                      />
-                    ) : (
-                      <div className="flex items-center py-2">
-                        <Phone className="w-4 h-4 text-muted-foreground mr-2" />
-                        <span>{profile.phone}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground text-sm">생년월일</Label>
-                    {editing ? (
-                      <Input 
-                        name="birthdate"
-                        type="date"
-                        value={profile.birthdate}
-                        onChange={handleChange}
-                        className="border-border/40"
-                      />
-                    ) : (
-                      <div className="flex items-center py-2">
-                        <Calendar className="w-4 h-4 text-muted-foreground mr-2" />
-                        <span>{profile.birthdate}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <hr className="border-border/40" />
-
-                <h3 className="text-lg font-medium mb-4 text-foreground">건강 정보</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground text-sm">성별</Label>
-                    {editing ? (
-                      <select 
-                        name="gender"
-                        value={profile.gender}
-                        onChange={handleChange}
-                        className="w-full h-10 px-3 rounded-md border border-border/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
-                      >
-                        <option value="남성">남성</option>
-                        <option value="여성">여성</option>
-                        <option value="기타">기타</option>
-                      </select>
-                    ) : (
-                      <div className="py-2">{profile.gender}</div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground text-sm">키 (cm)</Label>
-                    {editing ? (
-                      <Input 
-                        name="height"
-                        type="number"
-                        value={profile.height}
-                        onChange={handleChange}
-                        className="border-border/40"
-                      />
-                    ) : (
-                      <div className="py-2">{profile.height} cm</div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground text-sm">체중 (kg)</Label>
-                    {editing ? (
-                      <Input 
-                        name="weight"
-                        type="number"
-                        value={profile.weight}
-                        onChange={handleChange}
-                        className="border-border/40"
-                      />
-                    ) : (
-                      <div className="py-2">{profile.weight} kg</div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground text-sm">BMI</Label>
-                    <div className="py-2">
-                      {(profile.weight / ((profile.height / 100) ** 2)).toFixed(1)} (정상)
-                    </div>
-                  </div>
-                </div>
-
-                <hr className="border-border/40" />
-
-                <h3 className="text-lg font-medium mb-4 text-foreground">식이 정보</h3>
-                
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground text-sm">의학적 상태</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {profile.medicalConditions.map((condition, i) => (
-                        <span key={i} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
-                          {condition}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground text-sm">식이 제한</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {profile.dietaryRestrictions.map((restriction, i) => (
-                        <span key={i} className="px-3 py-1 bg-destructive/10 text-destructive rounded-full text-sm">
-                          {restriction}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground text-sm">선호 음식</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {profile.preferences.map((preference, i) => (
-                        <span key={i} className="px-3 py-1 bg-secondary/10 text-secondary rounded-full text-sm">
-                          {preference}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+            {/* 진행 상태 표시 */}
+            <div className="bg-gray-50 rounded-xl p-4 mb-6">
+              <h3 className="text-sm font-medium text-gray-500 mb-3">프로필 완성도</h3>
+              <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                <div 
+                  className="bg-primary h-2.5 rounded-full" 
+                  style={{ 
+                    width: `${
+                      ((user.allergies?.length ? 1 : 0) + 
+                      (user.currentHealthStatus ? 1 : 0) + 
+                      (user.healthGoals?.length ? 1 : 0) + 
+                      (user.existingConditions ? 1 : 0) +
+                      (user.constitution ? 1 : 0)) * 20
+                    }%` 
+                  }}
+                ></div>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <ProfileBadge 
+                  active={user.allergies?.length > 0} 
+                  icon={<AlertCircle className="w-3.5 h-3.5" />} 
+                  text="알레르기 정보" 
+                />
+                <ProfileBadge 
+                  active={!!user.currentHealthStatus} 
+                  icon={<Heart className="w-3.5 h-3.5" />} 
+                  text="건강 상태" 
+                />
+                <ProfileBadge 
+                  active={user.healthGoals?.length > 0} 
+                  icon={<ListTodo className="w-3.5 h-3.5" />} 
+                  text="건강 목표" 
+                />
+                <ProfileBadge 
+                  active={!!user.existingConditions} 
+                  icon={<AlertCircle className="w-3.5 h-3.5" />} 
+                  text="기존 질환" 
+                />
+                <ProfileBadge 
+                  active={!!user.constitution} 
+                  icon={<CheckCircle2 className="w-3.5 h-3.5" />} 
+                  text="체질 진단" 
+                />
               </div>
             </div>
           </div>
         </div>
-      </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+          {/* 건강 정보 섹션 */}
+          <div className="md:col-span-3 space-y-6">
+            <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+              <div className="border-b border-gray-100 bg-gray-50 px-5 py-4">
+                <h2 className="font-semibold text-lg flex items-center gap-2">
+                  <Heart className="w-5 h-5 text-primary" />
+                  <span>건강 정보</span>
+                </h2>
+              </div>
+              <div className="p-5 space-y-6">
+                {editing ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="allergies" className="text-sm font-medium flex items-center gap-1.5">
+                        <AlertCircle className="w-4 h-4 text-destructive/70" />
+                        알레르기 (쉼표로 구분)
+                      </Label>
+                      <Input
+                        id="allergies"
+                        name="allergies"
+                        value={profile.allergies?.join(', ') || ''}
+                        onChange={handleAllergiesChange}
+                        className="border-gray-200 focus:border-primary"
+                        placeholder="예: 견과류, 계란, 유제품"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="currentHealthStatus" className="text-sm font-medium flex items-center gap-1.5">
+                        <Heart className="w-4 h-4 text-primary/70" />
+                        현재 건강 상태
+                      </Label>
+                      <Textarea
+                        id="currentHealthStatus"
+                        name="currentHealthStatus"
+                        value={profile.currentHealthStatus || ''}
+                        onChange={handleChange}
+                        rows={3}
+                        className="border-gray-200 focus:border-primary"
+                        placeholder="현재 건강 상태를 간략히 설명해주세요."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="healthGoals" className="text-sm font-medium flex items-center gap-1.5">
+                        <ListTodo className="w-4 h-4 text-teal-500/70" />
+                        건강 목표 (쉼표로 구분)
+                      </Label>
+                      <Input
+                        id="healthGoals"
+                        name="healthGoals"
+                        value={profile.healthGoals?.join(', ') || ''}
+                        onChange={handleHealthGoalsChange}
+                        className="border-gray-200 focus:border-primary"
+                        placeholder="예: 체중 감량, 혈압 관리, 면역력 증진"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="existingConditions" className="text-sm font-medium flex items-center gap-1.5">
+                        <AlertCircle className="w-4 h-4 text-amber-500/70" />
+                        기존 질환
+                      </Label>
+                      <Textarea
+                        id="existingConditions"
+                        name="existingConditions"
+                        value={profile.existingConditions || ''}
+                        onChange={handleChange}
+                        rows={3}
+                        className="border-gray-200 focus:border-primary"
+                        placeholder="혈압, 당뇨 등 기존 질환을 입력해주세요."
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-gray-500 flex items-center gap-1.5">
+                        <AlertCircle className="w-4 h-4 text-destructive/70" />
+                        알레르기
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {user.allergies?.length ? (
+                          user.allergies.map((item, i) => (
+                            <span key={i} className="px-3 py-1 bg-red-50 text-destructive rounded-full text-sm border border-red-100">
+                              {item}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-muted-foreground text-sm">알레르기 정보가 없습니다.</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-gray-500 flex items-center gap-1.5">
+                        <Heart className="w-4 h-4 text-primary/70" />
+                        현재 건강 상태
+                      </h3>
+                      <p className="text-sm leading-relaxed bg-gray-50 rounded-lg p-3 border border-gray-100">
+                        {user.currentHealthStatus || "건강 상태 정보가 없습니다."}
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-gray-500 flex items-center gap-1.5">
+                        <ListTodo className="w-4 h-4 text-teal-500/70" />
+                        건강 목표
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {user.healthGoals?.length ? (
+                          user.healthGoals.map((item, i) => (
+                            <span key={i} className="px-3 py-1 bg-teal-50 text-teal-600 rounded-full text-sm border border-teal-100">
+                              {item}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-muted-foreground text-sm">건강 목표가 없습니다.</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-gray-500 flex items-center gap-1.5">
+                        <AlertCircle className="w-4 h-4 text-amber-500/70" />
+                        기존 질환
+                      </h3>
+                      <p className="text-sm leading-relaxed bg-gray-50 rounded-lg p-3 border border-gray-100">
+                        {user.existingConditions || "기존 질환 정보가 없습니다."}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 체질 정보 섹션 */}
+          <div className="md:col-span-2">
+            {user.constitution ? (
+              <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+                <div className="border-b border-gray-100 bg-gray-50 px-5 py-4">
+                  <h2 className="font-semibold text-lg flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    <span>체질 진단 결과</span>
+                  </h2>
+                </div>
+                <div className="p-5">
+                  <ConstitutionCard constitution={user.constitution} />
+                  {user.constitutionReason && (
+                    <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                      <p className="text-sm text-gray-600 leading-relaxed">
+                        <span className="font-medium block mb-1">진단 근거:</span>
+                        {user.constitutionReason}
+                      </p>
+                      {user.constitutionConfidence && (
+                        <div className="mt-3 flex items-center gap-2">
+                          <span className="text-xs font-medium text-gray-500">진단 신뢰도:</span>
+                          <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                            <div 
+                              className="bg-green-500 h-1.5 rounded-full" 
+                              style={{ width: `${user.constitutionConfidence * 100}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs font-medium">
+                            {Math.round(user.constitutionConfidence * 100)}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+                <div className="border-b border-gray-100 bg-gray-50 px-5 py-4">
+                  <h2 className="font-semibold text-lg">체질 진단</h2>
+                </div>
+                <div className="p-6 text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Heart className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-2">아직 체질 진단을 받지 않으셨습니다</h3>
+                  <p className="text-muted-foreground text-sm mb-6">체질 진단을 통해 맞춤형 건강 식단을 추천받으세요.</p>
+                  <Button className="rounded-lg" size="lg" asChild>
+                    <a href="/constitution-diagnosis">체질 진단 받기</a>
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 프로필 완성도 배지 컴포넌트
+function ProfileBadge({ active, icon, text }) {
+  return (
+    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs ${
+      active 
+        ? 'bg-primary/10 text-primary border border-primary/20' 
+        : 'bg-gray-100 text-gray-500 border border-gray-200'
+    }`}>
+      {icon}
+      <span>{text}</span>
+      {active && <CheckCircle2 className="w-3 h-3 ml-0.5" />}
     </div>
   );
 } 

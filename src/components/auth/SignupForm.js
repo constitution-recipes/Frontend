@@ -166,13 +166,19 @@ export function SignupForm() {
     setIsLoading(true);
     setError('');
 
+    // 알레르기 ID를 한국어 라벨로 매핑
+    const koreanAllergies = profileData.allergies.map(id => {
+      const opt = allergyOptions.find(a => a.id === id);
+      return opt ? opt.label : id;
+    });
+
     // 회원가입 기본 정보와 프로필 정보를 alias 기반 camelCase 키로 합쳐 요청
     const userData = {
       name: signupData.name,
       email: signupData.email,
       password: signupData.password,
       phoneNumber: signupData.phoneNumber,
-      allergies: profileData.allergies,
+      allergies: koreanAllergies,
       healthStatus: profileData.currentHealthStatus,
       existingConditions: profileData.existingConditions || "",
       healthGoals: profileData.healthGoals

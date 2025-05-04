@@ -12,11 +12,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { authService } from '@/lib/services/authService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function ConstitutionPage() {
   const initialFetchRef = useRef(false);
+  const textareaRef = useRef(null);
   const token = authService.getToken();
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, refreshUser } = useAuth();
   const router = useRouter();
   const [messages, setMessages] = useState([]);
   const [qaList, setQaList] = useState([]);
@@ -91,6 +93,24 @@ export default function ConstitutionPage() {
     }
   }, [qaList]);
 
+  const adjustTextareaHeight = () => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      const computedHeight = Math.min(textarea.scrollHeight, 120);
+      textarea.style.height = `${computedHeight}px`;
+    }
+  };
+
+  const handleInputChange = (e) => {
+    setInput(e.target.value);
+    adjustTextareaHeight();
+  };
+
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -132,6 +152,7 @@ export default function ConstitutionPage() {
           },
           { role: 'assistant', type: 'card', constitution: data.constitution }
         ]);
+        await refreshUser();
       } else {
         setMessages((prev) => [...prev, { role: 'assistant', type: 'text', content: data.next_question || '' }]);
       }
@@ -145,13 +166,15 @@ export default function ConstitutionPage() {
       setMessages((prev) => [...prev, { role: 'assistant', type: 'text', content: '오류가 발생했습니다. 다시 시도해주세요.' }]);
     } finally {
       setLoading(false);
+      if (textareaRef.current) {
+        textareaRef.current.style.height = '56px';
+      }
     }
   };
 
   const handleCreateRecipe = () => {
-    // 체질 정보를 쿼리 파라미터로 전달
     if (constitution) {
-      router.push(`/chatbot`);
+      refreshUser().then(() => router.push(`/chatbot`));
     }
   };
 
@@ -340,31 +363,53 @@ export default function ConstitutionPage() {
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2 }}
               onSubmit={handleSubmit}
-              className="flex items-center gap-2 max-w-3xl mx-auto"
+              className="flex items-end gap-2 max-w-3xl mx-auto w-full"
             >
-              <div className="relative flex-1">
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="질문에 대한 답변을 입력하세요..."
-                  className="pl-5 pr-10 py-6 rounded-full bg-muted border-none shadow-sm text-base focus:ring-2 focus:ring-primary/30"
-                  disabled={loading || showRecipeButton}
-                  autoComplete="off"
-                />
-                {input && (
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
-                    onClick={() => setInput('')}
-                  >
-                    <XCircle className="h-5 w-5" />
-                  </button>
-                )}
+              <div className="relative flex-1 w-full">
+                <div className="relative flex items-center w-full">
+                  <Textarea
+                    ref={textareaRef}
+                    value={input}
+                    onChange={handleInputChange}
+                    placeholder="질문에 대한 답변을 입력하세요..."
+                    className="pl-5 pr-10 py-4 min-h-[56px] max-h-[150px] rounded-3xl bg-muted border-none shadow-sm text-base focus:ring-2 focus:ring-primary/30 resize-none overflow-y-auto w-full"
+                    disabled={loading || showRecipeButton}
+                    autoComplete="off"
+                    rows={1}
+                    style={{
+                      paddingRight: '3rem',
+                      lineHeight: '1.5',
+                      transition: 'height 0.2s ease',
+                      width: '100%'
+                    }}
+                    onKeyDown={(e) => {
+                      // Enter 키로 제출 (Shift+Enter는 줄바꿈)
+                      if (e.key === 'Enter' && !e.shiftKey && !loading && input.trim()) {
+                        e.preventDefault();
+                        handleSubmit(e);
+                      }
+                    }}
+                  />
+                  {input && (
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                      onClick={() => {
+                        setInput('');
+                        if (textareaRef.current) {
+                          textareaRef.current.style.height = '56px';
+                        }
+                      }}
+                    >
+                      <XCircle className="h-5 w-5" />
+                    </button>
+                  )}
+                </div>
               </div>
               <Button
                 type="submit"
                 disabled={loading || !input.trim() || showRecipeButton}
-                className="rounded-full bg-primary hover:bg-primary/90 shadow-md w-14 h-14 flex items-center justify-center p-0"
+                className="rounded-full bg-primary hover:bg-primary/90 shadow-md w-14 h-14 flex items-center justify-center p-0 flex-shrink-0 mb-[1px]"
               >
                 <Send className="h-5 w-5" />
               </Button>
@@ -379,7 +424,7 @@ export default function ConstitutionPage() {
               ) : (
                 <p className="flex items-center">
                   <CornerDownRight className="h-3 w-3 mr-1" />
-                  체질 진단을 위해 질문에 솔직하게 답변해주세요.
+                  체질 진단을 위해 질문에 솔직하게 답변해주세요. <span className="bg-gray-100 px-1 py-0.5 rounded text-xs ml-1">Shift+Enter</span>로 줄바꿈이 가능합니다.
                 </p>
               )}
             </div>

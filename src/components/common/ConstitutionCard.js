@@ -8,13 +8,13 @@ const constitutionColors = {
     gradient: "from-amber-50 to-amber-100", 
     border: "border-amber-200",
     accent: "text-amber-600",
-    icon: <Lungs className="w-5 h-5" />
+    icon: <Heart className="w-5 h-5" />
   },
   "금음": { 
     gradient: "from-amber-50 to-amber-100", 
     border: "border-amber-200",
     accent: "text-amber-600",
-    icon: <Lungs className="w-5 h-5" />
+    icon: <Heart className="w-5 h-5" />
   },
   "수양": { 
     gradient: "from-blue-50 to-blue-100", 

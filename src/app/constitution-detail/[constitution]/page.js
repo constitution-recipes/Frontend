@@ -244,15 +244,6 @@ export default function ConstitutionDetailPage({ params }) {
           {/* 추천 버튼 */}
           <div className="flex justify-center gap-4 my-6">
             <Button 
-              variant="ghost" 
-              className="rounded-lg px-6 border border-gray-200" 
-              asChild
-            >
-              <Link href="/constitution-diagnosis">
-                진단 페이지로 돌아가기
-              </Link>
-            </Button>
-            <Button 
               className={`rounded-lg px-6 ${colors.bgAccent} hover:opacity-90 text-white gap-2`} 
               asChild
             >
