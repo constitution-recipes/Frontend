@@ -14,6 +14,9 @@ export class UserModel {
     healthGoals = null,
     currentHealthStatus = null,
     existingConditions = null,
+    constitution = null,
+    constitutionReason = null,
+    constitutionConfidence = null,
     createdAt = new Date(),
   } = {}) {
     this.id = id;
@@ -24,6 +27,9 @@ export class UserModel {
     this.healthGoals = healthGoals;
     this.currentHealthStatus = currentHealthStatus;
     this.existingConditions = existingConditions;
+    this.constitution = constitution;
+    this.constitutionReason = constitutionReason;
+    this.constitutionConfidence = constitutionConfidence;
     this.createdAt = createdAt instanceof Date ? createdAt : new Date(createdAt);
   }
 
@@ -41,6 +47,9 @@ export class UserModel {
       healthGoals: this.healthGoals,
       currentHealthStatus: this.currentHealthStatus,
       existingConditions: this.existingConditions,
+      constitution: this.constitution,
+      constitutionReason: this.constitutionReason,
+      constitutionConfidence: this.constitutionConfidence,
       createdAt: this.createdAt.toISOString(),
     };
   }
@@ -56,10 +65,14 @@ export class UserModel {
       email: json.email,
       name: json.name,
       phoneNumber: json.phoneNumber,
-      allergies: json.allergies,
-      healthGoals: json.healthGoals,
-      currentHealthStatus: json.currentHealthStatus,
-      existingConditions: json.existingConditions,
+      allergies: json.allergies || [],
+      healthGoals: json.healthGoals || [],
+      // 백엔드에서 오는 필드명이 다를 수 있어 여러 경우에 대응
+      currentHealthStatus: json.currentHealthStatus || json.healthStatus || "",
+      existingConditions: json.existingConditions || json.illnesses || "",
+      constitution: json.constitution,
+      constitutionReason: json.constitutionReason || json.constitution_reason || "",
+      constitutionConfidence: json.constitutionConfidence || json.constitution_confidence || null,
       createdAt: json.createdAt,
     });
   }

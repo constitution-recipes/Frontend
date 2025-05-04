@@ -37,7 +37,13 @@ export function LoginForm() {
     setError('');
 
     try {
-      await login(data.email, data.password);
+      const currentUser = await login(data.email, data.password);
+      if (!currentUser.constitution) {
+        alert('체질이 없어 사용자에게 맞는 레시피가 없습니다. 체질 진단을 진행해주세요.');
+        router.push('/constitution-diagnosis');
+      } else {
+        router.push('/chatbot');
+      }
     } catch (err) {
       setError('이메일 또는 비밀번호가 올바르지 않습니다.');
     } finally {
