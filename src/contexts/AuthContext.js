@@ -14,6 +14,7 @@ const defaultState = {
   login: async () => {},
   signup: async () => {},
   logout: () => {},
+  refreshUser: async () => {},
 };
 
 // Context 생성
@@ -27,16 +28,18 @@ export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // 인증 상태 확인
-  const checkAuth = async () => {
+  // 사용자 정보 갱신 함수
+  const refreshUser = async () => {
     setIsLoading(true);
     try {
       if (authService.isAuthenticated()) {
         const currentUser = await userService.getCurrentUser();
         setUser(currentUser);
+      } else {
+        setUser(null);
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
+      console.error('Auth refresh failed:', error);
       authService.logout();
       setUser(null);
     } finally {
@@ -44,9 +47,9 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // 초기 마운트 시 인증 상태 확인
+  // 초기 마운트 시 인증 상태 확인 (refreshUser 호출)
   useEffect(() => {
-    checkAuth();
+    refreshUser();
   }, []);
 
   /**
@@ -57,11 +60,11 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     setIsLoading(true);
     try {
-      const { user } = await authService.login(email, password);
-      setUser(user);
+      await authService.login(email, password);
+      const currentUser = await userService.getCurrentUser();
+      setUser(currentUser);
       toast.success('로그인에 성공했습니다!');
-      router.push('/recommend_recipes');
-      return user;
+      return currentUser;
     } catch (error) {
       toast.error(error.response?.data?.detail || '로그인에 실패했습니다. 다시 시도해주세요.');
       throw error;
@@ -96,7 +99,7 @@ export function AuthProvider({ children }) {
     authService.logout();
     setUser(null);
     toast.success('로그아웃되었습니다.');
-    router.push('/auth/login');
+    router.push('/');
   };
 
   // Context에 제공할 값
@@ -107,6 +110,7 @@ export function AuthProvider({ children }) {
     login,
     signup,
     logout,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

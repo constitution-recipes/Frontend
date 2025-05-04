@@ -1,331 +1,382 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { User, Edit, Mail, Phone, Calendar, MapPin, Heart, ChevronRight } from 'lucide-react';
-import SidebarLayout from '@/components/layout/SidebarLayout';
+
+import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import userService from '@/lib/services/userService';
+import { User, Mail, Phone, Heart, AlertCircle, CheckCircle2, ListTodo, Clock, ShieldCheck } from 'lucide-react';
+import ConstitutionCard from '@/components/common/ConstitutionCard';
 
 export default function ProfilePage() {
+  const { user, refreshUser, isLoading } = useAuth();
+  const { toast } = useToast();
+  const [editing, setEditing] = useState(false);
   const [profile, setProfile] = useState({
-    name: '홍길동',
-    email: 'hong@example.com',
-    phone: '010-1234-5678',
-    birthdate: '1990-01-01',
-    address: '서울특별시 강남구',
-    bodyType: '소양체질',
-    bio: '건강한 식습관에 관심이 많습니다.',
-    avatar: '/avatar-placeholder.jpg'
+    allergies: [],
+    currentHealthStatus: '',
+    healthGoals: [],
+    existingConditions: ''
   });
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedProfile, setEditedProfile] = useState({ ...profile });
-  const [activityHistory, setActivityHistory] = useState([]);
-  const [savedRecipes, setSavedRecipes] = useState([]);
-
   useEffect(() => {
-    // 로컬 스토리지에서 저장된 레시피 불러오기
-    const loadSavedRecipes = () => {
-      try {
-        const savedRecipesData = localStorage.getItem('savedRecipes');
-        if (savedRecipesData) {
-          setSavedRecipes(JSON.parse(savedRecipesData));
-        }
-      } catch (error) {
-        console.error('저장된 레시피를 불러오는 중 오류 발생:', error);
-      }
-    };
-
-    // 활동 내역 더미 데이터
-    setActivityHistory([
-      { id: 1, type: '체질 테스트', date: '2023-04-15', description: '체질 분석 테스트 완료' },
-      { id: 2, type: '레시피 저장', date: '2023-04-16', description: '단호박 수프 레시피 저장' },
-      { id: 3, type: '프로필 업데이트', date: '2023-04-20', description: '프로필 정보 업데이트' }
-    ]);
-
-    loadSavedRecipes();
-  }, []);
-
-  const handleEditToggle = () => {
-    if (isEditing) {
-      // 수정 완료 시 프로필 업데이트
-      setProfile({ ...editedProfile });
-    } else {
-      // 수정 시작 시 현재 프로필 정보로 초기화
-      setEditedProfile({ ...profile });
+    if (user) {
+      setProfile({
+        allergies: user.allergies || [],
+        currentHealthStatus: user.currentHealthStatus || '',
+        healthGoals: user.healthGoals || [],
+        existingConditions: user.existingConditions || ''
+      });
     }
-    setIsEditing(!isEditing);
+  }, [user]);
+
+  const handleEdit = () => {
+    setEditing(true);
   };
 
-  const handleInputChange = (e) => {
+  const handleCancel = () => {
+    if (user) {
+      setProfile({
+        allergies: user.allergies || [],
+        currentHealthStatus: user.currentHealthStatus || '',
+        healthGoals: user.healthGoals || [],
+        existingConditions: user.existingConditions || ''
+      });
+    }
+    setEditing(false);
+  };
+
+  const handleSave = async () => {
+    try {
+      await userService.updateProfile(profile);
+      await refreshUser();
+      setEditing(false);
+      toast({
+        title: "프로필 업데이트",
+        description: "프로필이 성공적으로 업데이트되었습니다.",
+      });
+    } catch (error) {
+      console.error('프로필 업데이트 오류:', error);
+      toast({
+        title: "오류 발생",
+        description: "프로필 업데이트 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleChange = (e) => {
     const { name, value } = e.target;
-    setEditedProfile({
-      ...editedProfile,
+    setProfile(prev => ({
+      ...prev,
       [name]: value
-    });
+    }));
   };
 
-  const handleBodyTypeChange = (value) => {
-    setEditedProfile({
-      ...editedProfile,
-      bodyType: value
-    });
+  const handleAllergiesChange = (e) => {
+    const allergiesArray = e.target.value.split(',').map(item => item.trim()).filter(Boolean);
+    setProfile(prev => ({
+      ...prev,
+      allergies: allergiesArray
+    }));
   };
+
+  const handleHealthGoalsChange = (e) => {
+    const goalsArray = e.target.value.split(',').map(item => item.trim()).filter(Boolean);
+    setProfile(prev => ({
+      ...prev,
+      healthGoals: goalsArray
+    }));
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 mx-auto relative">
+            <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping"></div>
+            <div className="relative w-full h-full flex items-center justify-center bg-primary/10 rounded-full">
+              <Clock className="w-8 h-8 text-primary" />
+            </div>
+          </div>
+          <p className="text-lg font-medium text-muted-foreground">프로필 정보를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <p className="text-lg font-medium text-muted-foreground">로그인이 필요합니다.<br/>로그인 후 다시 시도해주세요.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 체질 여부에 따른 배경 색상 설정
+  const hasConstitution = !!user.constitution;
+  const bgColor = hasConstitution 
+    ? 'bg-gradient-to-b from-white via-white to-green-50' 
+    : 'bg-gradient-to-b from-white via-white to-gray-50';
 
   return (
-    <SidebarLayout>
-      <div className="container mx-auto py-8 px-4">
-        <h1 className="text-3xl font-bold mb-8 text-center">마이 프로필</h1>
-        
-        <Tabs defaultValue="profile" className="w-full max-w-4xl mx-auto">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
-            <TabsTrigger value="profile">프로필 정보</TabsTrigger>
-            <TabsTrigger value="saved">저장한 레시피</TabsTrigger>
-            <TabsTrigger value="activity">활동 내역</TabsTrigger>
-          </TabsList>
+    <div className={`min-h-screen ${bgColor}`}>
+      <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 md:px-8">
+        {/* 프로필 카드 - 개선된 그라데이션 및 디자인 */}
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-8 border border-gray-100">
+          {/* 프로필 헤더 - 더 강화된 그라데이션 */}
+          <div className="relative overflow-hidden">
+            <div className="h-40 bg-gradient-to-r from-primary/95 via-primary/80 to-primary/70"></div>
+            <div className="absolute inset-0 bg-[url('/pattern-dots.png')] opacity-15"></div>
+            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/25 to-transparent"></div>
+            
+            <div className="absolute right-4 top-4">
+              <div className="px-3 py-1.5 rounded-full bg-white/25 backdrop-blur-md text-white text-xs font-medium flex items-center gap-1.5 shadow-sm">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>내 프로필</span>
+              </div>
+            </div>
+          </div>
           
-          <TabsContent value="profile">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-2xl">내 정보</CardTitle>
-                  <CardDescription>개인 정보 및 체질 정보를 확인하세요</CardDescription>
+          {/* 프로필 내용 */}
+          <div className="px-6 pb-6 relative">
+            <div className="flex flex-col sm:flex-row gap-6 -mt-16 mb-8">
+              <div className="w-28 h-28 rounded-full bg-white p-2 shadow-lg self-center sm:self-start mx-auto sm:mx-0 border border-white/80">
+                <div className="w-full h-full rounded-full bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center border border-primary/10">
+                  <User className="w-14 h-14 text-primary" />
                 </div>
-                <Button variant="outline" size="sm" onClick={handleEditToggle}>
-                  {isEditing ? '저장' : '수정'} <Edit className="ml-2 h-4 w-4" />
-                </Button>
-              </CardHeader>
+              </div>
               
-              <CardContent>
-                <div className="flex flex-col md:flex-row gap-8">
-                  <div className="flex flex-col items-center space-y-4 w-full md:w-1/3">
-                    <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-teal-500">
-                      <Image 
-                        src={profile.avatar || '/avatar-placeholder.jpg'} 
-                        alt={profile.name} 
-                        fill
-                        className="object-cover"
-                      />
+              <div className="flex-1">
+                <div className="bg-white rounded-xl shadow-md border border-gray-100 p-5 mb-4">
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-2.5 justify-center sm:justify-start">
+                        <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-primary/10">
+                          <User className="w-4.5 h-4.5 text-primary" />
+                        </span>
+                        <span className="text-sm text-gray-500 font-medium">이름</span>
+                      </div>
+                      <span className="text-lg font-bold text-center sm:text-right">{user.name}</span>
                     </div>
-                    {!isEditing ? (
-                      <div className="text-center">
-                        <h2 className="text-xl font-bold">{profile.name}</h2>
-                        <p className="text-teal-600 font-medium">{profile.bodyType}</p>
-                        <p className="text-gray-500 mt-2">{profile.bio}</p>
+                    
+                    <div className="w-full border-t border-gray-100 my-1"></div>
+                    
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-2.5 justify-center sm:justify-start">
+                        <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-blue-50">
+                          <Mail className="w-4.5 h-4.5 text-blue-500" />
+                        </span>
+                        <span className="text-sm text-gray-500 font-medium">이메일</span>
                       </div>
-                    ) : (
-                      <div className="w-full space-y-4">
-                        <div>
-                          <Label htmlFor="name">이름</Label>
-                          <Input 
-                            id="name" 
-                            name="name" 
-                            value={editedProfile.name} 
-                            onChange={handleInputChange}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="bio">자기소개</Label>
-                          <Input 
-                            id="bio" 
-                            name="bio" 
-                            value={editedProfile.bio} 
-                            onChange={handleInputChange}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="w-full md:w-2/3 space-y-6">
-                    {!isEditing ? (
-                      <div className="space-y-4">
-                        <div className="flex items-center">
-                          <Mail className="text-gray-500 mr-3" />
-                          <div>
-                            <p className="text-sm text-gray-500">이메일</p>
-                            <p>{profile.email}</p>
+                      <span className="text-sm font-medium text-center sm:text-right break-all">{user.email}</span>
+                    </div>
+                    
+                    {user.phoneNumber && (
+                      <>
+                        <div className="w-full border-t border-gray-100 my-1"></div>
+                        
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-center gap-2.5 justify-center sm:justify-start">
+                            <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-green-50">
+                              <Phone className="w-4.5 h-4.5 text-green-500" />
+                            </span>
+                            <span className="text-sm text-gray-500 font-medium">전화번호</span>
                           </div>
+                          <span className="text-sm font-medium text-center sm:text-right">{user.phoneNumber}</span>
                         </div>
-                        <div className="flex items-center">
-                          <Phone className="text-gray-500 mr-3" />
-                          <div>
-                            <p className="text-sm text-gray-500">전화번호</p>
-                            <p>{profile.phone}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center">
-                          <Calendar className="text-gray-500 mr-3" />
-                          <div>
-                            <p className="text-sm text-gray-500">생년월일</p>
-                            <p>{profile.birthdate}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center">
-                          <MapPin className="text-gray-500 mr-3" />
-                          <div>
-                            <p className="text-sm text-gray-500">주소</p>
-                            <p>{profile.address}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center">
-                          <User className="text-gray-500 mr-3" />
-                          <div>
-                            <p className="text-sm text-gray-500">체질</p>
-                            <p>{profile.bodyType}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="email">이메일</Label>
-                          <Input 
-                            id="email" 
-                            name="email" 
-                            value={editedProfile.email} 
-                            onChange={handleInputChange}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="phone">전화번호</Label>
-                          <Input 
-                            id="phone" 
-                            name="phone" 
-                            value={editedProfile.phone} 
-                            onChange={handleInputChange}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="birthdate">생년월일</Label>
-                          <Input 
-                            id="birthdate" 
-                            name="birthdate" 
-                            type="date" 
-                            value={editedProfile.birthdate} 
-                            onChange={handleInputChange}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="address">주소</Label>
-                          <Input 
-                            id="address" 
-                            name="address" 
-                            value={editedProfile.address} 
-                            onChange={handleInputChange}
-                          />
-                        </div>
-                        <div>
-                          <Label>체질</Label>
-                          <RadioGroup 
-                            value={editedProfile.bodyType} 
-                            onValueChange={handleBodyTypeChange}
-                            className="flex flex-col space-y-1 mt-2"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="태양체질" id="type1" />
-                              <Label htmlFor="type1">태양체질</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="태음체질" id="type2" />
-                              <Label htmlFor="type2">태음체질</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="소양체질" id="type3" />
-                              <Label htmlFor="type3">소양체질</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="소음체질" id="type4" />
-                              <Label htmlFor="type4">소음체질</Label>
-                            </div>
-                          </RadioGroup>
-                        </div>
-                      </div>
+                      </>
                     )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="saved">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">저장한 레시피</CardTitle>
-                <CardDescription>내가 저장한 레시피 목록</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {savedRecipes.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {savedRecipes.map(recipe => (
-                      <div key={recipe.id} className="flex items-center p-4 border rounded-lg">
-                        <div className="relative w-16 h-16 mr-4 overflow-hidden rounded">
-                          <Image 
-                            src={recipe.image || 'https://via.placeholder.com/150'} 
-                            alt={recipe.title}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                        <div className="flex-grow">
-                          <h3 className="font-medium">{recipe.title}</h3>
-                          <p className="text-sm text-gray-500 truncate">{recipe.description}</p>
-                        </div>
-                        <Link href={`/recipe/${recipe.id}`}>
-                          <ChevronRight className="text-gray-400" />
-                        </Link>
-                      </div>
-                    ))}
+              </div>
+            </div>
+
+            {/* 프로필 완성도 - 개선된 디자인 */}
+            <div className="relative bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl p-5 border border-gray-100 mb-6 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-gray-700">프로필 정보 완성도</h3>
+                <div className="text-xs text-muted-foreground mt-1 sm:mt-0">
+                  {Math.round(((user.allergies?.length ? 1 : 0) + 
+                  (user.currentHealthStatus ? 1 : 0) + 
+                  (user.healthGoals?.length ? 1 : 0) + 
+                  (user.existingConditions ? 1 : 0) +
+                  (user.constitution ? 1 : 0)) * 20)}% 완료
+                </div>
+              </div>
+              
+              <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-primary to-primary/80 h-2.5 rounded-full" 
+                  style={{ 
+                    width: `${
+                      ((user.allergies?.length ? 1 : 0) + 
+                      (user.currentHealthStatus ? 1 : 0) + 
+                      (user.healthGoals?.length ? 1 : 0) + 
+                      (user.existingConditions ? 1 : 0) +
+                      (user.constitution ? 1 : 0)) * 20
+                    }%` 
+                  }}
+                ></div>
+              </div>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-4">
+                <ProfileBadge 
+                  active={user.allergies?.length > 0} 
+                  icon={<AlertCircle className="w-3.5 h-3.5" />} 
+                  text="알레르기" 
+                />
+                <ProfileBadge 
+                  active={!!user.currentHealthStatus} 
+                  icon={<Heart className="w-3.5 h-3.5" />} 
+                  text="건강 상태" 
+                />
+                <ProfileBadge 
+                  active={user.healthGoals?.length > 0} 
+                  icon={<ListTodo className="w-3.5 h-3.5" />} 
+                  text="건강 목표" 
+                />
+                <ProfileBadge 
+                  active={!!user.existingConditions} 
+                  icon={<AlertCircle className="w-3.5 h-3.5" />} 
+                  text="기존 질환" 
+                />
+                <ProfileBadge 
+                  active={!!user.constitution} 
+                  icon={<CheckCircle2 className="w-3.5 h-3.5" />} 
+                  text="체질 진단" 
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* 체질 정보 섹션 - 개선된 디자인 */}
+          <div className="order-2 md:order-1">
+            {user.constitution ? (
+              <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-green-50 to-teal-50">
+                  <h2 className="text-base font-semibold flex items-center gap-2 text-gray-800">
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    <span>체질 진단 결과</span>
+                  </h2>
+                </div>
+                <div className="p-5">
+                  <ConstitutionCard constitution={user.constitution} />
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden h-full">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-slate-50">
+                  <h2 className="text-base font-semibold text-gray-800">체질 진단</h2>
+                </div>
+                <div className="p-8 flex flex-col items-center justify-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                    <Heart className="w-8 h-8 text-gray-400" />
                   </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Heart className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-500 mb-2">저장한 레시피가 없습니다</h3>
-                    <p className="text-gray-400 mb-4">마음에 드는 레시피를 저장해보세요!</p>
-                    <Button variant="outline" asChild>
-                      <Link href="/recommend_recipes">맞춤 레시피 보기</Link>
-                    </Button>
+                  <h3 className="text-lg font-medium mb-2 text-center">체질 진단 미완료</h3>
+                  <p className="text-muted-foreground text-sm mb-6 text-center">맞춤형 건강 식단을 추천받으려면<br />체질 진단을 완료하세요.</p>
+                  <Button className="rounded-lg px-6 shadow-sm" size="lg" asChild>
+                    <a href="/constitution-diagnosis">체질 진단 받기</a>
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 건강 정보 섹션 - 개선된 디자인 */}
+          <div className="order-1 md:order-2">
+            <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <h2 className="text-base font-semibold flex items-center gap-2 text-gray-800">
+                  <Heart className="w-5 h-5 text-blue-500" />
+                  <span>건강 정보</span>
+                </h2>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {/* 알레르기 정보 */}
+                <div className="p-5">
+                  <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5 mb-3">
+                    <AlertCircle className="w-4 h-4 text-red-500" />
+                    알레르기
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {user.allergies?.length ? (
+                      user.allergies.map((item, i) => (
+                        <span key={i} className="px-3 py-1 bg-red-50 text-red-700 rounded-full text-sm border border-red-100">
+                          {item}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-muted-foreground text-sm">알레르기 정보가 없습니다.</span>
+                    )}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="activity">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">활동 내역</CardTitle>
-                <CardDescription>사이트에서의 활동을 확인하세요</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {activityHistory.length > 0 ? (
-                  <div className="space-y-4">
-                    {activityHistory.map(activity => (
-                      <div key={activity.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div>
-                          <h3 className="font-medium">{activity.type}</h3>
-                          <p className="text-sm text-gray-500">{activity.description}</p>
-                        </div>
-                        <div className="text-sm text-gray-400">{activity.date}</div>
-                      </div>
-                    ))}
+                </div>
+                
+                {/* 건강 상태 */}
+                <div className="p-5">
+                  <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5 mb-3">
+                    <Heart className="w-4 h-4 text-primary" />
+                    건강 상태
+                  </h3>
+                  <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3 border border-gray-100">
+                    {user.currentHealthStatus || "건강 상태 정보가 없습니다."}
                   </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-400">활동 내역이 없습니다.</p>
+                </div>
+                
+                {/* 건강 목표 */}
+                <div className="p-5">
+                  <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5 mb-3">
+                    <ListTodo className="w-4 h-4 text-teal-500" />
+                    건강 목표
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {user.healthGoals?.length ? (
+                      user.healthGoals.map((item, i) => (
+                        <span key={i} className="px-3 py-1 bg-teal-50 text-teal-700 rounded-full text-sm border border-teal-100">
+                          {item}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-muted-foreground text-sm">건강 목표가 없습니다.</span>
+                    )}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                </div>
+                
+                {/* 기존 질환 */}
+                <div className="p-5">
+                  <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5 mb-3">
+                    <AlertCircle className="w-4 h-4 text-amber-500" />
+                    기존 질환
+                  </h3>
+                  <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3 border border-gray-100">
+                    {user.existingConditions || "기존 질환 정보가 없습니다."}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </SidebarLayout>
+    </div>
+  );
+}
+
+// 프로필 완성도 배지 컴포넌트
+function ProfileBadge({ active, icon, text }) {
+  return (
+    <div className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium ${
+      active 
+        ? 'bg-primary/10 text-primary border border-primary/20' 
+        : 'bg-gray-100 text-gray-500 border border-gray-200'
+    }`}>
+      {icon}
+      <span>{text}</span>
+      {active && <CheckCircle2 className="w-3 h-3 text-green-500 ml-0.5" />}
+    </div>
   );
 } 

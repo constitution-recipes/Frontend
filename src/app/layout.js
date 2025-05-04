@@ -1,9 +1,10 @@
-// 'use client';
+// 위 줄을 완전히 삭제
 
 import { Noto_Sans_KR } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
 import './globals.css';
+import NavBar from '@/components/common/NavBar';
 
 const notoSansKr = Noto_Sans_KR({ 
   subsets: ['latin'],
@@ -30,6 +31,7 @@ export default function RootLayout({ children }) {
     <html lang="ko" className={notoSansKr.variable} suppressHydrationWarning>
       <body className={`min-h-screen bg-background font-sans antialiased ${notoSansKr.className}`}>
         <AuthProvider>
+          <NavBar />
           <main className="relative flex min-h-screen flex-col">
             {children}
           </main>

@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { authService } from '@/lib/services/authService';
+import axios from 'axios';
 
 /**
  * 회원가입 폼 컴포넌트
@@ -131,33 +132,69 @@ export function SignupForm() {
 
   // 1단계: 회원가입
   const handleSignup = async (e) => {
+    console.log('handleSignup triggered', signupData);
     e.preventDefault();
-    setIsLoading(true);
     setError('');
+    // 필수 입력값 확인
+    if (!validateStep1()) {
+      return;
+    }
+    setIsLoading(true);
     try {
-      await authService.signup(signupData);
-      setStep(2); // 다음 단계로 이동
-    } catch (err) {
-      setError('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
+      console.log('Checking email existence for:', signupData.email);
+      // 이메일 중복 검사 (authService 사용)
+      const exists = await authService.emailExists(signupData.email);
+      if (exists) {
+        console.log('Email already exists');
+        setError('이미 사용 중인 이메일입니다.');
+        return;
+      }
+      console.log('Email available, moving to next step');
+      // 모든 입력이 정상이고 이메일 중복이 아니면 다음 단계로 이동
+      setStep(2);
+    } catch (error) {
+      console.error('handleSignup error:', error);
+      setError('이메일 확인 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 2단계: 프로필 저장
+  // 2단계: 프로필을 포함한 최종 회원가입
   const handleProfile = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // illnesses(혹은 existingConditions)가 비어 있으면 빈 문자열로 보장
-    const payload = {
-      allergies: profileData.allergies,
-      healthGoals: profileData.healthGoals,
-      currentHealthStatus: profileData.currentHealthStatus,
-      existingConditions: profileData.existingConditions || ""
+    // 알레르기 ID를 한국어 라벨로 매핑
+    const koreanAllergies = profileData.allergies.map(id => {
+      const opt = allergyOptions.find(a => a.id === id);
+      return opt ? opt.label : id;
+    });
+
+    // 건강 상태 한글 라벨 매핑
+    const healthStatusKorean = (() => {
+      const opt = healthStatusOptions.find(o => o.value === profileData.currentHealthStatus);
+      return opt ? opt.label : profileData.currentHealthStatus;
+    })();
+
+    // 건강 목표 한글 라벨 매핑
+    const healthGoalsKorean = profileData.healthGoals.map(val => {
+      const opt = healthGoalOptions.find(g => g.value === val);
+      return opt ? opt.label : val;
+    });
+
+    // 회원가입 기본 정보와 프로필 정보를 alias 기반 camelCase 키로 합쳐 요청
+    const userData = {
+      name: signupData.name,
+      email: signupData.email,
+      password: signupData.password,
+      phoneNumber: signupData.phoneNumber,
+      allergies: koreanAllergies,
+      healthStatus: healthStatusKorean,
+      existingConditions: profileData.existingConditions || "",
+      healthGoals: healthGoalsKorean
     };
-    console.log('profileData payload:', payload);
 
     try {
       await authService.signup(userData);
@@ -166,7 +203,11 @@ export function SignupForm() {
       // 로그인 성공 후 체질 진단 소개 페이지로 이동
       router.push('/constitution-intro');
     } catch (err) {
-      setError('프로필 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+      if (err.response?.status === 409) {
+        setError('이미 사용 중인 이메일입니다.');
+      } else {
+        setError('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -389,15 +430,13 @@ export function SignupForm() {
             <div className="w-full border-t border-muted"></div>
           </div>
         </div>
-        <p className="text-center text-sm text-muted-foreground">
+
+        <div className="text-center text-sm text-muted-foreground mt-4">
           이미 계정이 있으신가요?{' '}
-          <Link
-            href="/auth/login"
-            className="font-semibold text-primary hover:text-primary/90 transition-colors"
-          >
+          <Link href="/auth/login" className="text-primary hover:underline font-semibold">
             로그인
           </Link>
-        </p>
+        </div>
       </form>
     </div>
   );

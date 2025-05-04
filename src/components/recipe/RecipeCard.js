@@ -1,34 +1,80 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { Clock, Star, ChefHat, Tag, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { addBookmark, removeBookmark } from '@/lib/utils/bookmarkApi';
 
-export function RecipeCard({ recipe }) {
-  const { id, title, description, difficulty, prepTime, cookTime, image, rating, suitableFor, tags } = recipe;
-  const [isSaved, setIsSaved] = useState(false);
+export function RecipeCard({ recipe, isSaved, onBookmarkChange }) {
+  const { id, title, description, difficulty, cookTime, image, rating, suitableFor, tags } = recipe;
+  const { isAuthenticated } = useAuth();
+  const accessToken = typeof window !== 'undefined' ? require('@/lib/services/authService').authService.getToken() : null;
+  const [loading, setLoading] = useState(false);
   
   // 마운트 시 localStorage에서 저장 여부 확인
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
-    setIsSaved(saved.includes(id));
-  }, [id]);
+  //   const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
+  //   setIsSaved(saved.includes(id));
+  // }, [id]);
+    if (isAuthenticated && accessToken) {
+      // 서버에서 북마크 목록을 받아와서 체크하는 로직을 추가할 수도 있음
+      // 여기서는 단순히 localStorage fallback 유지
+      // 실제로는 상위에서 북마크 목록을 prop으로 내려주는 게 더 좋음
+    } else {
+      const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
+      setIsSaved(saved.includes(id));
+    }
+  }, [id, isAuthenticated, accessToken]);
   
   // 하트 클릭 시 저장/해제
-  const handleSave = (e) => {
-    e.preventDefault(); // 클릭 이벤트가 Link로 전파되는 것을 방지
-    const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
-    let updated;
-    if (isSaved) {
-      updated = saved.filter(savedId => savedId !== id);
-    } else {
-      updated = [...saved, id];
+  
+  // const handleSave = (e) => {
+  //   e.preventDefault(); // 클릭 이벤트가 Link로 전파되는 것을 방지
+  //   const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
+  //   let updated;
+  //   if (isSaved) {
+  //     updated = saved.filter(savedId => savedId !== id);
+  //   } else {
+  //     updated = [...saved, id];
+  //   }
+  //   localStorage.setItem('savedRecipes', JSON.stringify(updated));
+  //   setIsSaved(!isSaved);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    console.log('isAuthenticated:', isAuthenticated, 'accessToken:', accessToken);
+    if (!isAuthenticated || !accessToken) {
+      // 비로그인 fallback: localStorage
+      const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
+      let updated;
+      if (isSaved) {
+        updated = saved.filter(savedId => savedId !== id);
+      } else {
+        updated = [...saved, id];
+      }
+      localStorage.setItem('savedRecipes', JSON.stringify(updated));
+      if (typeof onBookmarkChange === 'function') {
+        onBookmarkChange();
+      }
+      return;
     }
-    localStorage.setItem('savedRecipes', JSON.stringify(updated));
-    setIsSaved(!isSaved);
+    setLoading(true);
+    try {
+      if (isSaved) {
+        await removeBookmark(id, accessToken);
+      } else {
+        await addBookmark(id, accessToken);
+      }
+    } catch (err) {
+      alert(err.message || '북마크 처리 중 오류 발생');
+    }
+    setLoading(false);
+    if (typeof onBookmarkChange === 'function') {
+      onBookmarkChange();
+    }
   };
   
   // 난이도에 따른 색상 설정
@@ -41,14 +87,7 @@ export function RecipeCard({ recipe }) {
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg">
       {/* 이미지 영역 */}
-      <div className="relative h-48 w-full">
-        <Image
-          src={image}
-          alt={title}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        />
+      <div className="relative h-48 w-full bg-gray-100 flex items-center justify-center">
         <button 
           onClick={handleSave}
           className="absolute top-3 right-3 p-1.5 bg-white/80 backdrop-blur-sm rounded-full transition-colors hover:bg-white"
@@ -76,7 +115,7 @@ export function RecipeCard({ recipe }) {
             {difficulty}
           </span>
           <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-            조리 {parseInt(cookTime) + parseInt(prepTime.replace(/\D/g, ''))}분
+            조리 {cookTime}
           </span>
         </div>
 
@@ -84,10 +123,6 @@ export function RecipeCard({ recipe }) {
         <p className="text-gray-600 text-sm mb-3 line-clamp-2">{description}</p>
 
         <div className="flex items-center text-sm text-gray-500 mb-3">
-          <div className="flex items-center mr-3">
-            <Clock size={14} className="mr-1" />
-            <span>준비 {prepTime}</span>
-          </div>
           <div className="flex items-center">
             <ChefHat size={14} className="mr-1" />
             <span>조리 {cookTime}</span>

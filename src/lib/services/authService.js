@@ -5,7 +5,7 @@ import Cookies from 'js-cookie';
 import qs from 'qs';
 
 // API URL 설정
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const AUTH_COOKIE_NAME = process.env.NEXT_PUBLIC_AUTH_COOKIE_NAME || 'auth_token';
 
 /**
@@ -20,7 +20,8 @@ export const authService = {
    */
   async signup(userData) {
     try {
-      const response = await axios.post(`${API_URL}/auth/signup`, userData);
+      console.log(API_URL);
+      const response = await axios.post(`${API_URL}/api/v1/users/signup`, userData);
       // 회원가입 응답에 access_token이 포함되어 있다면 저장
       const { access_token } = response.data;
       if (access_token) {
@@ -47,7 +48,7 @@ export const authService = {
   async login(email, password) {
     try {
       const response = await axios.post(
-        `${API_URL}/auth/login`,
+        `${API_URL}/api/v1/users/login`,
         qs.stringify({ username: email, password }),
         {
           headers: {
@@ -105,7 +106,7 @@ export const authService = {
     try {
       const token = this.getToken();
       const response = await axios.put(
-        `${API_URL}/auth/profile`,
+        `${API_URL}/api/v1/users/profile`,
         profileData,
         {
           headers: {
@@ -119,4 +120,21 @@ export const authService = {
       throw error;
     }
   },
+
+  /**
+   * 이메일 중복 여부 확인
+   * @param {string} email - 확인할 이메일
+   * @returns {Promise<boolean>} - 존재 여부
+   */
+  async emailExists(email) {
+    try {
+      const response = await axios.get(`${API_URL}/api/v1/users/email-exists`, {
+        params: { email }
+      });
+      return response.data.exists;
+    } catch (error) {
+      console.error('Email exists check error:', error.response?.data || error.message);
+      throw error;
+    }
+  }
 }; 

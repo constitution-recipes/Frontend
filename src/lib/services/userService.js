@@ -5,18 +5,17 @@ import { authService } from './authService';
 import { UserModel } from '../models/userModel';
 
 // API URL 설정
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 /**
- * API 요청에 인증 헤더 추가
+ * API 요청에 인증 헤더 및 쿠키 전송 설정 추가
  * @returns {Object} - 인증 헤더를 포함한 axios config
  */
 const getAuthConfig = () => {
   const token = authService.getToken();
   return {
-    headers: {
-      Authorization: token ? `Bearer ${token}` : '',
-    },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    withCredentials: true, // 쿠키 전송 허용
   };
 };
 
@@ -32,7 +31,7 @@ export const userService = {
    */
   async getUser(userId) {
     try {
-      const response = await axios.get(`${API_URL}/users/${userId}`, getAuthConfig());
+      const response = await axios.get(`${API_URL}/api/v1/users/${userId}`, getAuthConfig());
       return UserModel.fromJSON(response.data);
     } catch (error) {
       console.error('Get user error:', error.response?.data || error.message);
@@ -46,7 +45,7 @@ export const userService = {
    */
   async getCurrentUser() {
     try {
-      const response = await axios.get(`${API_URL}/users/me`, getAuthConfig());
+      const response = await axios.get(`${API_URL}/api/v1/users/me`, getAuthConfig());
       return UserModel.fromJSON(response.data);
     } catch (error) {
       console.error('Get current user error:', error.response?.data || error.message);
@@ -62,7 +61,7 @@ export const userService = {
    */
   async updateUser(userId, userData) {
     try {
-      const response = await axios.put(`${API_URL}/users/${userId}`, userData, getAuthConfig());
+      const response = await axios.put(`${API_URL}/api/v1/users/${userId}`, userData, getAuthConfig());
       return UserModel.fromJSON(response.data);
     } catch (error) {
       console.error('Update user error:', error.response?.data || error.message);
