@@ -171,11 +171,11 @@ export function SignupForm() {
       name: signupData.name,
       email: signupData.email,
       password: signupData.password,
-      phone_number: signupData.phoneNumber,
+      phoneNumber: signupData.phoneNumber,
       allergies: profileData.allergies,
-      health_status: profileData.currentHealthStatus,
-      illnesses: profileData.existingConditions || "",
-      health_goals: profileData.healthGoals
+      healthGoals: profileData.healthGoals,
+      healthStatus: profileData.currentHealthStatus,
+      existingConditions: profileData.existingConditions || "",
     };
 
     try {

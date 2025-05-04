@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Clock, ChefHat, Star, ArrowLeft, Heart, Share2, Users, Award, CheckCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { fetchBookmarks, addBookmark, removeBookmark } from '@/lib/utils/bookmarkApi';
 
 export default function RecipeDetailClient({ id }) {
   const [recipe, setRecipe] = useState(null);
@@ -13,6 +15,8 @@ export default function RecipeDetailClient({ id }) {
   const [loading, setLoading] = useState(true);
   const [imgError, setImgError] = useState(false);
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
+  const accessToken = typeof window !== 'undefined' ? require('@/lib/services/authService').authService.getToken() : null;
 
   useEffect(() => {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
@@ -26,28 +30,52 @@ export default function RecipeDetailClient({ id }) {
       .finally(() => setLoading(false));
   }, [id, router]);
 
-  // 레시피 로드 후 localStorage 저장 상태 확인 (항상 같은 훅 순서)
+  // 레시피 로드 후 북마크 상태 동기화
   useEffect(() => {
-    if (recipe) {
-    const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
-    setIsSaved(saved.includes(recipe.id));
+    if (!recipe) return;
+    if (isAuthenticated && accessToken) {
+      fetchBookmarks(accessToken)
+        .then(bookmarks => {
+          setIsSaved(bookmarks.some(b => b.recipe_id === recipe.id));
+        })
+        .catch(() => setIsSaved(false));
+    } else {
+      const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
+      setIsSaved(saved.includes(recipe.id));
     }
-  }, [recipe]);
+  }, [recipe, isAuthenticated, accessToken]);
 
   if (loading) return <div className="p-8 text-center">로딩 중...</div>;
   if (!recipe) return null;
 
   // 하트 클릭 시 저장/해제
-  const handleSave = () => {
-    const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
-    let updated;
-    if (isSaved) {
-      updated = saved.filter(id => id !== recipe.id);
-    } else {
-      updated = [...saved, recipe.id];
+  const handleSave = async () => {
+    if (!isAuthenticated || !accessToken) {
+      // 비로그인 fallback: localStorage
+      const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
+      let updated;
+      if (isSaved) {
+        updated = saved.filter(id => id !== recipe.id);
+      } else {
+        updated = [...saved, recipe.id];
+      }
+      localStorage.setItem('savedRecipes', JSON.stringify(updated));
+      setIsSaved(!isSaved);
+      return;
     }
-    localStorage.setItem('savedRecipes', JSON.stringify(updated));
-    setIsSaved(!isSaved);
+    // 로그인: 서버에 북마크 추가/해제
+    try {
+      if (isSaved) {
+        await removeBookmark(recipe.id, accessToken);
+      } else {
+        await addBookmark(recipe.id, accessToken);
+      }
+      // 서버 반영 후 북마크 상태 재확인
+      const bookmarks = await fetchBookmarks(accessToken);
+      setIsSaved(bookmarks.some(b => b.recipe_id === recipe.id));
+    } catch (err) {
+      alert(err.message || '북마크 처리 중 오류 발생');
+    }
   };
 
   // 공유 버튼 클릭 시 URL 복사

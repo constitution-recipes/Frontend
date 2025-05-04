@@ -1,6 +1,9 @@
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1492';
+console.log('API_URL:', API_URL);
+
 // 북마크 추가
 export async function addBookmark(recipeId, accessToken) {
-  const res = await fetch('/api/v1/bookmarks/', {
+  const res = await fetch(`${API_URL}/api/v1/bookmarks/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -14,7 +17,7 @@ export async function addBookmark(recipeId, accessToken) {
 
 // 북마크 해제
 export async function removeBookmark(recipeId, accessToken) {
-  const res = await fetch(`/api/v1/bookmarks/${recipeId}`, {
+  const res = await fetch(`${API_URL}/api/v1/bookmarks/${recipeId}`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
@@ -25,7 +28,7 @@ export async function removeBookmark(recipeId, accessToken) {
 
 // 내 북마크 목록 조회
 export async function fetchBookmarks(accessToken) {
-  const res = await fetch('/api/v1/bookmarks/', {
+  const res = await fetch(`${API_URL}/api/v1/bookmarks/`, {
     headers: {
       'Authorization': `Bearer ${accessToken}`,
     },

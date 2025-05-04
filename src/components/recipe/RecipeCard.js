@@ -8,11 +8,10 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { addBookmark, removeBookmark } from '@/lib/utils/bookmarkApi';
 
-export function RecipeCard({ recipe }) {
+export function RecipeCard({ recipe, isSaved, onBookmarkChange }) {
   const { id, title, description, difficulty, cookTime, image, rating, suitableFor, tags } = recipe;
   const { isAuthenticated } = useAuth();
   const accessToken = typeof window !== 'undefined' ? require('@/lib/services/authService').authService.getToken() : null;
-  const [isSaved, setIsSaved] = useState(false);
   const [loading, setLoading] = useState(false);
   
   // 마운트 시 localStorage에서 저장 여부 확인
@@ -46,6 +45,7 @@ export function RecipeCard({ recipe }) {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    console.log('isAuthenticated:', isAuthenticated, 'accessToken:', accessToken);
     if (!isAuthenticated || !accessToken) {
       // 비로그인 fallback: localStorage
       const saved = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
@@ -56,7 +56,9 @@ export function RecipeCard({ recipe }) {
         updated = [...saved, id];
       }
       localStorage.setItem('savedRecipes', JSON.stringify(updated));
-      setIsSaved(!isSaved);
+      if (typeof onBookmarkChange === 'function') {
+        onBookmarkChange();
+      }
       return;
     }
     setLoading(true);
@@ -66,11 +68,13 @@ export function RecipeCard({ recipe }) {
       } else {
         await addBookmark(id, accessToken);
       }
-      setIsSaved(!isSaved);
     } catch (err) {
       alert(err.message || '북마크 처리 중 오류 발생');
     }
     setLoading(false);
+    if (typeof onBookmarkChange === 'function') {
+      onBookmarkChange();
+    }
   };
   
   // 난이도에 따른 색상 설정
