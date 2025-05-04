@@ -165,49 +165,54 @@ export function SignupForm() {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    // // 알레르기 ID를 한국어 라벨로 매핑
+    // const koreanAllergies = profileData.allergies.map(id => {
+    //   const opt = allergyOptions.find(a => a.id === id);
+    //   return opt ? opt.label : id;
+    // });
 
-    // 알레르기 ID를 한국어 라벨로 매핑
-    const koreanAllergies = profileData.allergies.map(id => {
-      const opt = allergyOptions.find(a => a.id === id);
-      return opt ? opt.label : id;
-    });
+    // // 건강 상태 한글 라벨 매핑
+    // const healthStatusKorean = (() => {
+    //   const opt = healthStatusOptions.find(o => o.value === profileData.currentHealthStatus);
+    //   return opt ? opt.label : profileData.currentHealthStatus;
+    // })();
 
-    // 건강 상태 한글 라벨 매핑
-    const healthStatusKorean = (() => {
-      const opt = healthStatusOptions.find(o => o.value === profileData.currentHealthStatus);
-      return opt ? opt.label : profileData.currentHealthStatus;
-    })();
+    // // 건강 목표 한글 라벨 매핑
+    // const healthGoalsKorean = profileData.healthGoals.map(val => {
+    //   const opt = healthGoalOptions.find(g => g.value === val);
+    //   return opt ? opt.label : val;
+    // });
 
-    // 건강 목표 한글 라벨 매핑
-    const healthGoalsKorean = profileData.healthGoals.map(val => {
-      const opt = healthGoalOptions.find(g => g.value === val);
-      return opt ? opt.label : val;
-    });
-
-    // 회원가입 기본 정보와 프로필 정보를 alias 기반 camelCase 키로 합쳐 요청
+    // // 회원가입 기본 정보와 프로필 정보를 alias 기반 camelCase 키로 합쳐 요청
+    // const userData = {
+    //   name: signupData.name,
+    //   email: signupData.email,
+    //   password: signupData.password,
+    //   phoneNumber: signupData.phoneNumber,
+    //   allergies: koreanAllergies,
+    //   healthStatus: healthStatusKorean,
+    //   existingConditions: profileData.existingConditions || "",
+    //   healthGoals: healthGoalsKorean
+    // };
+    // 모든 정보 한 번에 합치기
     const userData = {
-      name: signupData.name,
-      email: signupData.email,
-      password: signupData.password,
-      phoneNumber: signupData.phoneNumber,
-      allergies: koreanAllergies,
-      healthStatus: healthStatusKorean,
-      existingConditions: profileData.existingConditions || "",
-      healthGoals: healthGoalsKorean
+      ...signupData,
+      ...profileData
     };
-
     try {
+      // 1. 회원가입(모든 정보 한 번에)
       await authService.signup(userData);
-      // 회원가입 후 자동 로그인
-      await authService.login(userData.email, userData.password);
-      // 로그인 성공 후 체질 진단 소개 페이지로 이동
+      // 2. 자동 로그인
+      await authService.login(signupData.email, signupData.password);
+      // 3. 이동
       router.push('/constitution-intro');
     } catch (err) {
-      if (err.response?.status === 409) {
-        setError('이미 사용 중인 이메일입니다.');
-      } else {
-        setError('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
-      }
+      // if (err.response?.status === 409) {
+      //   setError('이미 사용 중인 이메일입니다.');
+      // } else {
+      //   setError('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
+      // }
+      setError('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
     } finally {
       setIsLoading(false);
     }
