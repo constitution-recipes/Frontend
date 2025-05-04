@@ -160,8 +160,11 @@ export function SignupForm() {
     console.log('profileData payload:', payload);
 
     try {
-      await authService.updateProfile(payload);
-      router.push('/recommend_recipes');
+      await authService.signup(userData);
+      // 회원가입 후 자동 로그인
+      await authService.login(userData.email, userData.password);
+      // 로그인 성공 후 체질 진단 소개 페이지로 이동
+      router.push('/constitution-intro');
     } catch (err) {
       setError('프로필 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
     } finally {
