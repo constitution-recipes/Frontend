@@ -30,6 +30,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ChatbotIntro from './ChatbotIntro';
 import { useAuth } from '@/contexts/AuthContext';
+import { Textarea } from '@/components/ui/textarea';
 
 // 가상의 사용자 정보 (실제로는 로그인 상태에서 가져옵니다)
 const userProfile = {
@@ -96,11 +97,21 @@ export default function ChatbotPage() {
   const [error, setError] = useState(null);
   
   const messagesEndRef = useRef(null);
+  const textareaRef = useRef(null);
 
   // 메시지가 추가될 때마다 스크롤을 맨 아래로 이동
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, generatedRecipe]);
+
+  // 텍스트에리어 초기 높이 설정
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const computedHeight = Math.min(textarea.scrollHeight, 150);
+      textarea.style.height = `${computedHeight}px`;
+    }
+  }, []);
 
   // sessionId가 변경될 때마다 백엔드에서 메시지 로드
   useEffect(() => {
@@ -339,6 +350,17 @@ export default function ChatbotPage() {
     window.addEventListener('openChatOptions', handler);
     return () => window.removeEventListener('openChatOptions', handler);
   }, []);
+
+  const handleInputChange = (e) => {
+    setInput(e.target.value);
+    // 텍스트 입력에 따른 높이 자동 조정
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      const computedHeight = Math.min(textarea.scrollHeight, 150);
+      textarea.style.height = `${computedHeight}px`;
+    }
+  };
 
   return (
     <SidebarLayout>
@@ -650,22 +672,41 @@ export default function ChatbotPage() {
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.2 }}
                     onSubmit={handleSubmit}
-                    className="flex items-center gap-2"
+                    className="flex items-end gap-2"
                   >
                     <div className="relative flex-1">
-                      <Input
+                      <Textarea
+                        ref={textareaRef}
                         value={input}
-                        onChange={(e) => setInput(e.target.value)}
+                        onChange={handleInputChange}
                         placeholder="AI 요리사에게 무엇이든 물어보세요! 🍳"
-                        className="pl-5 pr-10 py-6 rounded-full bg-muted border-none shadow-sm text-base focus:ring-2 focus:ring-primary/30"
+                        className="pl-5 pr-10 py-4 min-h-[56px] max-h-[150px] rounded-full bg-muted border-none shadow-sm text-base focus:ring-2 focus:ring-primary/30 resize-none overflow-y-auto"
                         disabled={loading}
                         autoComplete="off"
+                        rows={1}
+                        style={{
+                          paddingRight: '3rem',
+                          lineHeight: '1.5',
+                          transition: 'height 0.2s ease'
+                        }}
+                        onKeyDown={(e) => {
+                          // Enter 키로 제출 (Shift+Enter는 줄바꿈)
+                          if (e.key === 'Enter' && !e.shiftKey && !loading && input.trim()) {
+                            e.preventDefault();
+                            handleSubmit(e);
+                          }
+                        }}
                       />
                       {input && (
                         <button
                           type="button"
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
-                          onClick={() => setInput('')}
+                          onClick={() => {
+                            setInput('');
+                            if (textareaRef.current) {
+                              textareaRef.current.style.height = '56px';
+                            }
+                          }}
                         >
                           <XCircle className="h-5 w-5" />
                         </button>
@@ -674,7 +715,7 @@ export default function ChatbotPage() {
                     <Button
                       type="submit"
                       disabled={loading || !input.trim()}
-                      className="rounded-full bg-primary hover:bg-primary/90 shadow-md w-14 h-14 flex items-center justify-center p-0"
+                      className="rounded-full bg-primary hover:bg-primary/90 shadow-md w-14 h-14 flex items-center justify-center p-0 flex-shrink-0"
                     >
                       {loading ? (
                         <Loader2 className="h-6 w-6 animate-spin" />
@@ -685,7 +726,7 @@ export default function ChatbotPage() {
                   </motion.form>
                   <div className="mt-3 flex justify-center items-center space-x-2 text-xs text-muted-foreground">
                     <ChefHat className="h-3 w-3" />
-                    <p>건강 정보, 선호 음식, 영양소 등을 자세히 알려주시면 더 맞춤화된 레시피를 제공해드립니다.</p>
+                    <p>건강 정보, 선호 음식, 영양소 등을 자세히 알려주시면 더 맞춤화된 레시피를 제공해드립니다. <span className="bg-gray-100 px-1 py-0.5 rounded text-xs ml-1">Shift+Enter</span>로 줄바꿈</p>
                   </div>
                 </div>
               </div>

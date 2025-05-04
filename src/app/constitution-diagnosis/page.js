@@ -128,6 +128,11 @@ export default function ConstitutionPage() {
     setError(null);
     
     try {
+      // 토큰 유효성 확인
+      if (!token) {
+        throw new Error('로그인이 필요합니다. 다시 로그인해주세요.');
+      }
+      
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/constitution`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -136,13 +141,20 @@ export default function ConstitutionPage() {
       });
       
       if (!res.ok) {
-        throw new Error(`API error: ${res.status}`);
+        if (res.status === 401) {
+          throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
+        }
+        throw new Error(`진단 API 오류: ${res.status}`);
       }
+      
       const data = await res.json();
       
       if (data.can_diagnose) {
+        console.log('체질 진단 완료:', data.constitution);
         setConstitution(data.constitution);
         setShowRecipeButton(true);
+        
+        // 진단 결과를 메시지에 추가
         setMessages((prev) => [
           ...prev,
           { 
@@ -152,18 +164,44 @@ export default function ConstitutionPage() {
           },
           { role: 'assistant', type: 'card', constitution: data.constitution }
         ]);
-        await refreshUser();
+        
+        try {
+          // 사용자 프로필 정보 갱신 (MongoDB에 저장된 최신 정보 로드)
+          console.log('사용자 프로필 새로고침 중...');
+          await refreshUser();
+          console.log('사용자 프로필 갱신 완료');
+        } catch (refreshError) {
+          console.error('프로필 갱신 오류:', refreshError);
+          // 프로필 갱신 실패해도 진단 결과는 표시
+        }
       } else {
-        setMessages((prev) => [...prev, { role: 'assistant', type: 'text', content: data.next_question || '' }]);
+        // 다음 질문 표시
+        setMessages((prev) => [...prev, { role: 'assistant', type: 'text', content: data.next_question || '다음 질문을 준비중입니다.' }]);
+        
+        // 진행 상태 업데이트
+        if (newQaList.length <= 8) {
+          setProgression(Math.min(100, (newQaList.length / 8) * 100));
+        }
       }
     } catch (err) {
-      console.error('에러:', err);
+      console.error('체질 진단 오류:', err);
+      
+      // 오류 유형에 따른 메시지 설정
+      const errorMessage = err.message.includes('로그인') || err.message.includes('인증') 
+        ? '로그인 세션이 만료되었습니다. 다시 로그인 후 시도해주세요.'
+        : '체질 진단 과정에서 오류가 발생했습니다. 다시 시도해주세요.';
+      
       setError({
         title: '진단 오류',
-        message: '체질 진단 과정에서 오류가 발생했습니다. 다시 시도해주세요.',
+        message: errorMessage,
         code: err.message || 'UNKNOWN_ERROR'
       });
-      setMessages((prev) => [...prev, { role: 'assistant', type: 'text', content: '오류가 발생했습니다. 다시 시도해주세요.' }]);
+      
+      setMessages((prev) => [...prev, { 
+        role: 'assistant', 
+        type: 'text', 
+        content: errorMessage
+      }]);
     } finally {
       setLoading(false);
       if (textareaRef.current) {
@@ -174,7 +212,14 @@ export default function ConstitutionPage() {
 
   const handleCreateRecipe = () => {
     if (constitution) {
-      refreshUser().then(() => router.push(`/chatbot`));
+      // 프로필 정보 갱신 후 챗봇 페이지로 이동
+      refreshUser()
+        .then(() => router.push(`/chatbot`))
+        .catch(err => {
+          console.error('프로필 갱신 오류:', err);
+          // 오류가 있어도 챗봇 페이지로 이동
+          router.push(`/chatbot`);
+        });
     }
   };
 

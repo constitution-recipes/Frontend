@@ -172,6 +172,18 @@ export function SignupForm() {
       return opt ? opt.label : id;
     });
 
+    // 건강 상태 한글 라벨 매핑
+    const healthStatusKorean = (() => {
+      const opt = healthStatusOptions.find(o => o.value === profileData.currentHealthStatus);
+      return opt ? opt.label : profileData.currentHealthStatus;
+    })();
+
+    // 건강 목표 한글 라벨 매핑
+    const healthGoalsKorean = profileData.healthGoals.map(val => {
+      const opt = healthGoalOptions.find(g => g.value === val);
+      return opt ? opt.label : val;
+    });
+
     // 회원가입 기본 정보와 프로필 정보를 alias 기반 camelCase 키로 합쳐 요청
     const userData = {
       name: signupData.name,
@@ -179,9 +191,9 @@ export function SignupForm() {
       password: signupData.password,
       phoneNumber: signupData.phoneNumber,
       allergies: koreanAllergies,
-      healthStatus: profileData.currentHealthStatus,
+      healthStatus: healthStatusKorean,
       existingConditions: profileData.existingConditions || "",
-      healthGoals: profileData.healthGoals
+      healthGoals: healthGoalsKorean
     };
 
     try {

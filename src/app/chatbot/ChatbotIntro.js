@@ -1,10 +1,35 @@
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Send, Leaf, ChefHat, BarChart, Sparkles, Utensils } from 'lucide-react';
+import { Send, Leaf, ChefHat, BarChart, Sparkles, Utensils, XCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Textarea } from '@/components/ui/textarea';
+import { useRef, useEffect } from 'react';
 
 export default function ChatbotIntro({ input, setInput, handleSubmit, featureCards }) {
+  const textareaRef = useRef(null);
+
+  // 텍스트 입력에 따른 높이 자동 조정 함수
+  const adjustTextareaHeight = () => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      const computedHeight = Math.min(textarea.scrollHeight, 150);
+      textarea.style.height = `${computedHeight}px`;
+    }
+  };
+
+  // 입력값이 변경될 때 높이 조정
+  const handleInputChange = (e) => {
+    setInput(e.target.value);
+    adjustTextareaHeight();
+  };
+
+  // 컴포넌트 마운트 시 초기 높이 설정
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, []);
+
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center min-h-screen w-full bg-gradient-to-b from-background to-primary/5 transition-colors duration-500 z-30 pt-16">
       <motion.div 
@@ -50,14 +75,44 @@ export default function ChatbotIntro({ input, setInput, handleSubmit, featureCar
             <CardContent className="p-6">
               <form onSubmit={handleSubmit} className="w-full">
                 <div className="relative flex mb-2">
-                  <Input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="무엇이든 물어보세요..."
-                    className="pl-6 pr-24 py-6 rounded-full bg-muted border-none shadow-sm text-base focus:ring-2 focus:ring-primary/30 transition-all"
-                    autoFocus
-                    autoComplete="off"
-                  />
+                  <div className="relative w-full">
+                    <Textarea
+                      ref={textareaRef}
+                      value={input}
+                      onChange={handleInputChange}
+                      placeholder="무엇이든 물어보세요..."
+                      className="pl-6 pr-24 py-4 min-h-[56px] max-h-[150px] rounded-full bg-muted border-none shadow-sm text-base focus:ring-2 focus:ring-primary/30 transition-all resize-none overflow-y-auto"
+                      autoFocus
+                      autoComplete="off"
+                      rows={1}
+                      style={{
+                        paddingRight: '8rem',
+                        lineHeight: '1.5',
+                        transition: 'height 0.2s ease'
+                      }}
+                      onKeyDown={(e) => {
+                        // Enter 키로 제출 (Shift+Enter는 줄바꿈)
+                        if (e.key === 'Enter' && !e.shiftKey && input.trim()) {
+                          e.preventDefault();
+                          handleSubmit(e);
+                        }
+                      }}
+                    />
+                    {input && (
+                      <button
+                        type="button"
+                        className="absolute top-1/2 -translate-y-1/2 right-24 text-muted-foreground hover:text-foreground p-1"
+                        onClick={() => {
+                          setInput('');
+                          if (textareaRef.current) {
+                            textareaRef.current.style.height = '56px';
+                          }
+                        }}
+                      >
+                        <XCircle className="h-5 w-5" />
+                      </button>
+                    )}
+                  </div>
                   <Button
                     type="submit"
                     disabled={!input.trim()}
@@ -68,7 +123,7 @@ export default function ChatbotIntro({ input, setInput, handleSubmit, featureCar
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 text-center">
-                  체질에 맞는 건강 레시피를 물어보세요
+                  체질에 맞는 건강 레시피를 물어보세요 • <span className="bg-gray-100 px-1 py-0.5 rounded text-xs">Shift+Enter</span>로 줄바꿈
                 </p>
               </form>
             </CardContent>

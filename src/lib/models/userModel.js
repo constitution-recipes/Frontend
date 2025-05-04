@@ -65,13 +65,14 @@ export class UserModel {
       email: json.email,
       name: json.name,
       phoneNumber: json.phoneNumber,
-      allergies: json.allergies,
-      healthGoals: json.healthGoals,
-      currentHealthStatus: json.currentHealthStatus,
-      existingConditions: json.existingConditions,
+      allergies: json.allergies || [],
+      healthGoals: json.healthGoals || [],
+      // 백엔드에서 오는 필드명이 다를 수 있어 여러 경우에 대응
+      currentHealthStatus: json.currentHealthStatus || json.healthStatus || "",
+      existingConditions: json.existingConditions || json.illnesses || "",
       constitution: json.constitution,
-      constitutionReason: json.constitutionReason,
-      constitutionConfidence: json.constitutionConfidence,
+      constitutionReason: json.constitutionReason || json.constitution_reason || "",
+      constitutionConfidence: json.constitutionConfidence || json.constitution_confidence || null,
       createdAt: json.createdAt,
     });
   }
