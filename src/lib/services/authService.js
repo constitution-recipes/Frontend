@@ -66,6 +66,13 @@ export const authService = {
         sameSite: 'strict',
       });
 
+      // 근본적 해결: 쿠키가 실제로 저장될 때까지 대기 (최대 500ms)
+      const start = Date.now();
+      while (!Cookies.get(AUTH_COOKIE_NAME)) {
+        if (Date.now() - start > 500) break; // 0.5초 이상 대기하지 않음
+        await new Promise(res => setTimeout(res, 10));
+      }
+
       return { user };
     } catch (error) {
       console.error('Login error:', error.response?.data || error.message);
