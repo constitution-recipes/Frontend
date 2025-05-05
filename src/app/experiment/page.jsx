@@ -16,7 +16,7 @@ export default function ExperimentPage() {
 
   const handleExperiment = async () => {
     try {
-      const res = await fetch('/api/v1/constitution_recipe/test', {
+      const res = await fetch('/api/v1/experiment/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
