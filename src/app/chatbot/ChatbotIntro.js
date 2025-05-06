@@ -140,7 +140,7 @@ export default function ChatbotIntro({ input, setInput, handleSubmit, featureCar
             <CardContent className="p-6">
               <h2 className="text-lg font-semibold text-foreground mb-5 flex items-center">
                 <ChefHat className="w-5 h-5 mr-2 text-primary" />
-                <span>자주 사용하는 기능</span>
+                <span>세부기능</span>
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                 {featureCards.map((card, idx) => (

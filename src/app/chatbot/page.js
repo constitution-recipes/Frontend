@@ -288,6 +288,21 @@ function ChatbotPageInner() {
 
   // 기능별 챗봇 호출 함수
   const handleFeatureClick = async (featureKey, featureTitle) => {
+    if (initialState) {
+      // Intro에서 기능 선택 시, 챗봇 시작 질문 표시
+      const prompts = {
+        customize: '냉장고에서 사용하고 싶은 식재료는 무엇인가요? 이를 활용해서 체질에 맞고 맛있는 음식을 만들어 드릴게요.',
+        diet: '어떤 다이어트 목적이나 선호도가 있으신가요? 알려주시면 맞춤 식단을 추천해 드릴게요.',
+        difficulty: '원하시는 요리 난이도는 어느 정도인가요? (예: 쉬움, 보통, 어려움)',
+        event: '어떤 이벤트나 행사를 위한 메뉴를 원하시나요? (예: 파티, 명절, 기념일 등)'
+      };
+      const question = prompts[featureKey] || '원하시는 기능을 알려주세요.';
+      // 챗봇 창으로 전환
+      setInitialState(false);
+      setMessages([{ role: 'assistant', content: question }]);
+      return;
+    }
+    // 이미 채팅 시작 후 기능 호출 시 기존 로직 사용
     const sysMsg = { role: 'system', content: `${featureTitle} 기능이 선택되었습니다.` };
     const updatedMsgs = [...messages, sysMsg];
     setMessages(updatedMsgs);
@@ -316,13 +331,13 @@ function ChatbotPageInner() {
     }
   };
 
-  // 4가지 기능 카드 데이터
+  // 4가지 세부기능 카드 데이터
   const featureCards = [
     {
-      title: '레시피 변경',
-      description: '알레르기·선호·상황에 맞춰 레시피 커스터마이즈',
+      title: '냉장고 털기',
+      description: '냉장고에 있는 재료로 새로운 레시피 제안',
       icon: <ChefHat className="w-6 h-6 text-primary" strokeWidth={1.5} />,
-      onClick: () => handleFeatureClick('customize', '레시피 커스터마이즈'),
+      onClick: () => handleFeatureClick('customize', '냉장고 털기'),
     },
     {
       title: '다이어트 플랜',
@@ -331,16 +346,16 @@ function ChatbotPageInner() {
       onClick: () => handleFeatureClick('diet', '다이어트 플랜'),
     },
     {
-      title: '이벤트 메뉴',
-      description: '파티·명절 등 이벤트 메뉴 추천',
-      icon: <Sparkles className="w-6 h-6 text-amber-600" strokeWidth={1.5} />,
-      onClick: () => handleFeatureClick('event', '이벤트 메뉴'),
-    },
-    {
       title: '난이도 조정',
       description: '요리 난이도에 맞춘 레시피 제공',
       icon: <Utensils className="w-6 h-6 text-purple-600" strokeWidth={1.5} />,
       onClick: () => handleFeatureClick('difficulty', '난이도 조정'),
+    },
+    {
+      title: '이벤트 메뉴',
+      description: '파티·명절 등 이벤트 메뉴 추천',
+      icon: <Sparkles className="w-6 h-6 text-amber-600" strokeWidth={1.5} />,
+      onClick: () => handleFeatureClick('event', '이벤트 메뉴'),
     },
   ];
 
