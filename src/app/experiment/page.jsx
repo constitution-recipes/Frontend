@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Trash2 } from 'lucide-react';
+import { Trash2, ChevronUp, ChevronDown, Clock, Users, HeartPulse, Leaf, ShoppingBag, ChefHat, Check } from 'lucide-react';
 
 export default function ExperimentPage() {
   const [provider, setProvider] = useState('openai');
@@ -335,33 +335,116 @@ function RecipeToggleCard({ recipe }) {
   return (
     <div className="mb-3">
       <button
-        className="px-3 py-1 rounded bg-primary text-white text-xs font-semibold hover:bg-primary/80 transition mb-2"
+        className="px-4 py-1.5 rounded-full bg-gradient-to-r from-primary to-primary/80 text-white text-xs font-semibold hover:from-primary/90 hover:to-primary/70 transition-all duration-300 mb-3 shadow-md flex items-center mx-auto"
         onClick={() => setOpen(v => !v)}
       >
-        {open ? '레시피 닫기' : '레시피 보기'}
+        {open ? (
+          <>
+            <ChevronUp size={14} className="mr-1" />
+            레시피 닫기
+          </>
+        ) : (
+          <>
+            <ChevronDown size={14} className="mr-1" />
+            레시피 보기
+          </>
+        )}
       </button>
       {open && (
-        <div className="bg-white border border-border rounded shadow p-3 text-xs w-full max-w-xl mx-auto">
-          <div className="font-bold text-base text-primary mb-1">{recipe.title || '레시피 제목 없음'}</div>
-          <div className="text-muted mb-1">{recipe.description || '설명 없음'}</div>
-          <div className="text-gray-700 mb-1">{recipe.suitableFor || ''}</div>
-          <div className="text-gray-700 mb-1">난이도: {recipe.difficulty || '-'} / 시간: {recipe.cookTime || '-'}</div>
-          <div className="text-gray-700 mb-1">인분: {recipe.servings || '-'}</div>
-          <div className="text-gray-700 mb-1">영양정보: {recipe.nutritionalInfo || '-'}</div>
-          <div className="text-gray-700 mb-1">적합 체질: {Array.isArray(recipe.suitableBodyTypes) ? recipe.suitableBodyTypes.join(', ') : (recipe.suitableBodyTypes || '')}</div>
-          <div className="text-gray-700 mb-1">태그: {Array.isArray(recipe.tags) ? recipe.tags.join(', ') : (recipe.tags || '')}</div>
-          <div className="font-semibold mt-2">재료</div>
-          <ul className="text-gray-800 list-disc list-inside mb-2">
-            {Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0 ? recipe.ingredients.map((ing, i) => (
-              <li key={i}>{ing}</li>
-            )) : <li>재료 정보 없음</li>}
-          </ul>
-          <div className="font-semibold mt-2">조리 단계</div>
-          <ol className="text-gray-800 list-decimal list-inside">
-            {Array.isArray(recipe.steps) && recipe.steps.length > 0 ? recipe.steps.map((step, i) => (
-              <li key={i}>{step}</li>
-            )) : <li>조리 단계 정보 없음</li>}
-          </ol>
+        <div className="bg-gradient-to-b from-white to-gray-50 border border-border rounded-lg shadow-lg p-4 text-sm w-full max-w-xl mx-auto mb-4 transition-all duration-300 animate-fade-in">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-3 pb-2 border-b border-gray-100">
+            <div>
+              <h3 className="font-bold text-lg text-gray-900 mb-1">{recipe.title || '레시피 제목 없음'}</h3>
+              <p className="text-muted text-xs mb-1">{recipe.description || '설명 없음'}</p>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mt-2 md:mt-0">
+              {recipe.difficulty && (
+                <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
+                  {recipe.difficulty}
+                </span>
+              )}
+              {recipe.suitableFor && (
+                <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                  {recipe.suitableFor}
+                </span>
+              )}
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+            <div className="flex items-center">
+              <Clock size={16} className="text-primary mr-1.5" />
+              <span className="text-xs text-gray-700">조리 {recipe.cookTime || '-'}</span>
+            </div>
+            <div className="flex items-center">
+              <Users size={16} className="text-primary mr-1.5" />
+              <span className="text-xs text-gray-700">인분 {recipe.servings || '-'}</span>
+            </div>
+            <div className="flex items-center">
+              <HeartPulse size={16} className="text-primary mr-1.5" />
+              <span className="text-xs text-gray-700 truncate">
+                {Array.isArray(recipe.suitableBodyTypes) 
+                  ? recipe.suitableBodyTypes.join(', ') 
+                  : (recipe.suitableBodyTypes || '-')}
+              </span>
+            </div>
+          </div>
+          
+          {recipe.nutritionalInfo && (
+            <div className="bg-green-50 rounded-md p-2 mb-4 text-xs">
+              <div className="font-semibold text-green-700 flex items-center mb-1">
+                <Leaf size={14} className="mr-1" />
+                영양 정보
+              </div>
+              <p className="text-gray-700">{recipe.nutritionalInfo}</p>
+            </div>
+          )}
+          
+          <div className="mb-4">
+            <div className="font-semibold text-gray-800 flex items-center mb-2">
+              <ShoppingBag size={16} className="text-primary mr-1.5" />
+              재료
+            </div>
+            <div className="bg-gray-50 rounded-md p-3">
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1">
+                {Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0 ? recipe.ingredients.map((ing, i) => (
+                  <li key={i} className="text-xs text-gray-700 flex items-start">
+                    <Check size={12} className="text-green-500 mr-1.5 mt-0.5 flex-shrink-0" />
+                    <span>{ing}</span>
+                  </li>
+                )) : <li className="text-xs text-gray-500">재료 정보 없음</li>}
+              </ul>
+            </div>
+          </div>
+          
+          <div>
+            <div className="font-semibold text-gray-800 flex items-center mb-2">
+              <ChefHat size={16} className="text-primary mr-1.5" />
+              조리 단계
+            </div>
+            <div className="bg-gray-50 rounded-md p-3">
+              <ol className="space-y-2">
+                {Array.isArray(recipe.steps) && recipe.steps.length > 0 ? recipe.steps.map((step, i) => (
+                  <li key={i} className="text-xs text-gray-700 flex">
+                    <span className="bg-primary/10 text-primary rounded-full h-5 w-5 flex items-center justify-center mr-2 flex-shrink-0 font-semibold">
+                      {i+1}
+                    </span>
+                    <span>{step}</span>
+                  </li>
+                )) : <li className="text-xs text-gray-500">조리 단계 정보 없음</li>}
+              </ol>
+            </div>
+          </div>
+          
+          {Array.isArray(recipe.tags) && recipe.tags.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-1">
+              {recipe.tags.map((tag, i) => (
+                <span key={i} className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
