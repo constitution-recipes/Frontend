@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Trash2 } from 'lucide-react';
 
 export default function ExperimentPage() {
   const [provider, setProvider] = useState('openai');
@@ -100,6 +101,21 @@ export default function ExperimentPage() {
     fetchExps();
   }, []);
 
+  // 실험 삭제 핸들러
+  async function handleDeleteExperiment(experimentId) {
+    try {
+      const res = await fetch(`/api/v1/experiment/${experimentId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        alert('삭제에 실패했습니다.');
+        return;
+      }
+      setExperiments(prev => prev.filter(exp => exp.experiment_id !== experimentId));
+      if (selectedExp?.experiment_id === experimentId) setSelectedExp(null);
+    } catch (e) {
+      alert('삭제 중 오류가 발생했습니다.');
+    }
+  }
+
   return (
     <div className="flex h-screen">
       {/* 좌측: 전체 실험 기록 */}
@@ -110,19 +126,56 @@ export default function ExperimentPage() {
         ) : experiments.length === 0 ? (
           <p className="text-muted">실험 기록이 없습니다.</p>
         ) : (
-          experiments.map(exp => (
-            <div
-              key={exp.experiment_id}
-              className={`mb-3 p-3 rounded-lg cursor-pointer ${selectedExp?.experiment_id === exp.experiment_id ? 'bg-primary/10' : 'bg-card'} border border-border`}
-              onClick={() => setSelectedExp(exp)}
-            >
-              <div className="flex justify-between text-sm mb-1">
-                <span>ID: {exp.experiment_id.slice(0, 8)}</span>
-                <span>Avg: {exp.overall_average.toFixed(2)}</span>
+          [...experiments].sort((a, b) => b.overall_average - a.overall_average).map(exp => {
+            // 가장 첫 result의 timestamp 사용 (없으면 '-')
+            let createdAt = '-';
+            if (exp.results && exp.results.length > 0 && exp.results[0].timestamp) {
+              const d = new Date(exp.results[0].timestamp);
+              try {
+                createdAt = new Intl.DateTimeFormat('ko-KR', {
+                  year: 'numeric', month: '2-digit', day: '2-digit',
+                  hour: '2-digit', minute: '2-digit', second: '2-digit',
+                  hour12: false,
+                  timeZone: 'Asia/Seoul'
+                }).format(d);
+              } catch {
+                createdAt = d.toLocaleString('ko-KR');
+              }
+            }
+            return (
+              <div
+                key={exp.experiment_id}
+                className={`mb-3 p-3 rounded-lg cursor-pointer group relative ${selectedExp?.experiment_id === exp.experiment_id ? 'bg-primary/10' : 'bg-card'} border border-border`}
+                onClick={() => setSelectedExp(exp)}
+              >
+                {/* 삭제 버튼 (우측 상단) */}
+                <button
+                  className="absolute top-2 right-2 z-10 p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition"
+                  title="실험 삭제"
+                  onClick={e => {
+                    e.stopPropagation();
+                    if (window.confirm('정말 이 실험 기록을 삭제하시겠습니까?')) {
+                      handleDeleteExperiment(exp.experiment_id);
+                    }
+                  }}
+                >
+                  <Trash2 size={16} />
+                </button>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>ID: {exp.experiment_id.slice(0, 8)}</span>
+                  <span>평균(Recipe): {exp.overall_average.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-xs text-gray-700 font-semibold mb-1">
+                  <span>실험시각: {createdAt}</span>
+                </div>
+                <div className="text-xs font-semibold text-primary">모델: <span className="text-foreground font-bold">{exp.model}</span> / 공급자: <span className="text-foreground font-bold">{exp.provider}</span></div>
+                <div className="text-xs mt-1">
+                  <span className="font-semibold text-foreground">프롬프트:</span> <span className="font-semibold text-foreground"><PromptPreview text={exp.prompt_str} /></span>
+                </div>
+                <div className="text-xs text-muted">Convs: {exp.results.length}</div>
               </div>
-              <div className="text-xs text-muted">Convs: {exp.results.length}</div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
       {/* 우측: 선택된 실험 상세 및 입력 폼 */}
@@ -130,36 +183,56 @@ export default function ExperimentPage() {
         <div className="flex-grow p-4 overflow-auto space-y-6">
           {selectedExp ? (
             <>
-              <h2 className="text-2xl font-bold">실험: {selectedExp.experiment_id}</h2>
-              <p className="text-sm text-muted">전체 평균: {selectedExp.overall_average.toFixed(2)}</p>
+              <h2 className="text-2xl font-bold mb-2">실험: {selectedExp.experiment_id}</h2>
+              <div className="flex flex-wrap gap-4 items-center mb-2">
+                <span className="text-base font-semibold text-primary">모델: <span className="text-foreground font-bold">{selectedExp.model}</span></span>
+                <span className="text-base font-semibold text-primary">공급자: <span className="text-foreground font-bold">{selectedExp.provider}</span></span>
+                <span className="text-base font-semibold text-accent">평균(Recipe): <span className="font-bold">{selectedExp.overall_average.toFixed(2)}</span></span>
+              </div>
+              <div className="mb-4">
+                <span className="text-sm font-semibold text-foreground">프롬프트: <PromptPreview text={selectedExp.prompt_str} /></span>
+              </div>
               <p className="text-sm text-muted">
                 총 소요 시간: {selectedExp.duration ?? '-'}ms
                 (메시지당: {selectedExp.timePerMessage !== undefined ? selectedExp.timePerMessage.toFixed(1) : '-'}ms)
               </p>
               {selectedExp.results.map((conv, idx) => (
-                <div key={conv.conversation_id} className="p-4 bg-card rounded border border-border">
+                <div key={conv.conversation_id} className="p-4 bg-card rounded border border-border mb-6 shadow-sm">
                   <div className="flex justify-between mb-2">
-                    <span className="text-sm">Conv ID: {conv.conversation_id}</span>
-                    <span className="text-sm">Messages: {conv.messages.length}</span>
+                    <span className="text-sm font-semibold text-primary">Conv ID: {conv.conversation_id}</span>
+                    <span className="text-sm text-muted">Messages: {conv.messages.length}</span>
                   </div>
+                  {/* 레시피 토글 카드 */}
+                  <RecipeToggleCard recipe={conv.recipe_json} />
                   {/* 대화 내용 */}
                   <div className="bg-muted p-2 rounded mb-3">
                     {conv.messages.map((m, i) => (
-                      <p key={i}><strong>{m.role}</strong>: {m.content}</p>
+                      <p key={i}><span className={`font-bold ${m.role === 'user' ? 'text-primary' : 'text-accent'}`}>{m.role}:</span> <span className="text-foreground">{m.content}</span></p>
                     ))}
                   </div>
-                  {/* QA & Recipe 평가 */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <h5 className="font-semibold">QA 평가 (Score: {conv.qa_score.toFixed(2)})</h5>
-                      {conv.qa_result.map((r, i) => (
-                        <p key={i} className="text-sm">{r.question} - {r.answer}</p>
+                  {/* Recipe 평가 먼저 */}
+                  <div className="mb-2">
+                    <h5 className="font-semibold text-green-700 mb-1">Recipe 평가 <span className="text-xs">(Score: {conv.recipe_score?.toFixed(2)})</span></h5>
+                    <div className="grid md:grid-cols-2 gap-2">
+                      {conv.recipe_result.map((r, i) => (
+                        <div key={i} className="bg-white rounded border border-border p-2 mb-1 shadow-sm">
+                          <div className="font-bold text-primary">Q: <span className="font-normal text-foreground">{r.question}</span></div>
+                          <div className="font-bold text-accent">A: <span className="font-normal text-foreground">{r.answer}</span></div>
+                          <div className="text-xs font-semibold text-gray-700 mt-1">{r.reason}</div>
+                        </div>
                       ))}
                     </div>
-                    <div>
-                      <h5 className="font-semibold">Recipe 평가 (Score: {conv.recipe_score.toFixed(2)})</h5>
-                      {conv.recipe_result.map((r, i) => (
-                        <p key={i} className="text-sm">{r.criterion}: {r.score}</p>
+                  </div>
+                  {/* QA 평가 */}
+                  <div>
+                    <h5 className="font-semibold text-blue-700 mb-1">QA 평가 <span className="text-xs">(Score: {conv.qa_score?.toFixed(2)})</span></h5>
+                    <div className="grid md:grid-cols-2 gap-2">
+                      {conv.qa_result.map((r, i) => (
+                        <div key={i} className="bg-white rounded border border-border p-2 mb-1 shadow-sm">
+                          <div className="font-bold text-primary">Q: <span className="font-normal text-foreground">{r.question}</span></div>
+                          <div className="font-bold text-accent">A: <span className="font-normal text-foreground">{r.answer}</span></div>
+                          <div className="text-xs font-semibold text-gray-700 mt-1">{r.reason}</div>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -233,6 +306,64 @@ export default function ExperimentPage() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// 프롬프트 토글 컴포넌트
+function PromptPreview({ text }) {
+  const [show, setShow] = React.useState(false);
+  if (!text) return <span>-</span>;
+  if (text.length <= 30) return <span>{text}</span>;
+  return (
+    <span>
+      {show ? text : text.slice(0, 30) + '...'}
+      <button
+        className="ml-2 text-xs text-blue-600 underline hover:text-blue-800"
+        onClick={e => { e.stopPropagation(); setShow(v => !v); }}
+      >
+        {show ? '간략히' : '전체보기'}
+      </button>
+    </span>
+  );
+}
+
+// 레시피 토글 카드 컴포넌트
+function RecipeToggleCard({ recipe }) {
+  const [open, setOpen] = React.useState(false);
+  if (!recipe || Object.keys(recipe).length === 0) return <div className="text-xs text-gray-500 mb-4">레시피 정보가 없습니다.</div>;
+  return (
+    <div className="mb-3">
+      <button
+        className="px-3 py-1 rounded bg-primary text-white text-xs font-semibold hover:bg-primary/80 transition mb-2"
+        onClick={() => setOpen(v => !v)}
+      >
+        {open ? '레시피 닫기' : '레시피 보기'}
+      </button>
+      {open && (
+        <div className="bg-white border border-border rounded shadow p-3 text-xs w-full max-w-xl mx-auto">
+          <div className="font-bold text-base text-primary mb-1">{recipe.title || '레시피 제목 없음'}</div>
+          <div className="text-muted mb-1">{recipe.description || '설명 없음'}</div>
+          <div className="text-gray-700 mb-1">{recipe.suitableFor || ''}</div>
+          <div className="text-gray-700 mb-1">난이도: {recipe.difficulty || '-'} / 시간: {recipe.cookTime || '-'}</div>
+          <div className="text-gray-700 mb-1">인분: {recipe.servings || '-'}</div>
+          <div className="text-gray-700 mb-1">영양정보: {recipe.nutritionalInfo || '-'}</div>
+          <div className="text-gray-700 mb-1">적합 체질: {Array.isArray(recipe.suitableBodyTypes) ? recipe.suitableBodyTypes.join(', ') : (recipe.suitableBodyTypes || '')}</div>
+          <div className="text-gray-700 mb-1">태그: {Array.isArray(recipe.tags) ? recipe.tags.join(', ') : (recipe.tags || '')}</div>
+          <div className="font-semibold mt-2">재료</div>
+          <ul className="text-gray-800 list-disc list-inside mb-2">
+            {Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0 ? recipe.ingredients.map((ing, i) => (
+              <li key={i}>{ing}</li>
+            )) : <li>재료 정보 없음</li>}
+          </ul>
+          <div className="font-semibold mt-2">조리 단계</div>
+          <ol className="text-gray-800 list-decimal list-inside">
+            {Array.isArray(recipe.steps) && recipe.steps.length > 0 ? recipe.steps.map((step, i) => (
+              <li key={i}>{step}</li>
+            )) : <li>조리 단계 정보 없음</li>}
+          </ol>
+        </div>
+      )}
     </div>
   );
 } 
