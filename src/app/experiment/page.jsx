@@ -5,16 +5,27 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Trash2, ChevronUp, ChevronDown, Clock, Users, HeartPulse, Leaf, ShoppingBag, ChefHat, Check } from 'lucide-react';
+import { Trash2, ChevronUp, ChevronDown, Clock, Users, HeartPulse, Leaf, ShoppingBag, ChefHat, Check, DollarSign, Coins } from 'lucide-react';
 
 export default function ExperimentPage() {
   const [provider, setProvider] = useState('openai');
-  const [model, setModel] = useState('gpt-3.5-turbo');
+  const [model, setModel] = useState('gpt-4.1-2025-04-14');
   const [qaJson, setQaJson] = useState('');
   const [promptStr, setPromptStr] = useState('');
   const [experiments, setExperiments] = useState([]);  // 전체 실험 리스트
   const [selectedExp, setSelectedExp] = useState(null);  // 선택된 실험
   const [loading, setLoading] = useState(false);
+
+  // 공급자 변경 시 해당 공급자의 첫 번째 모델 자동 선택
+  useEffect(() => {
+    if (provider === 'openai') {
+      setModel('gpt-4.1-2025-04-14');
+    } else if (provider === 'gemini') {
+      setModel('gemini-2.5-flash-preview-04-17');
+    } else if (provider === 'claude') {
+      setModel('claude-3-7-sonnet-20250219');
+    }
+  }, [provider]);
 
   const handleExperiment = async () => {
     setLoading(true);
@@ -126,7 +137,10 @@ export default function ExperimentPage() {
         ) : experiments.length === 0 ? (
           <p className="text-muted">실험 기록이 없습니다.</p>
         ) : (
-          [...experiments].sort((a, b) => b.overall_average - a.overall_average).map(exp => {
+          [...experiments].sort((a, b) => 
+            (b.combined_score != null ? b.combined_score : b.overall_average) - 
+            (a.combined_score != null ? a.combined_score : a.overall_average)
+          ).map(exp => {
             // 가장 첫 result의 timestamp 사용 (없으면 '-')
             let createdAt = '-';
             if (exp.results && exp.results.length > 0 && exp.results[0].timestamp) {
@@ -142,6 +156,13 @@ export default function ExperimentPage() {
                 createdAt = d.toLocaleString('ko-KR');
               }
             }
+            
+            // 총 비용 계산
+            const totalCost = exp.total_cost ? exp.total_cost.toFixed(4) : '-';
+            // 비용 점수와 종합 점수
+            const costScore = exp.cost_score != null ? exp.cost_score.toFixed(2) : '-';
+            const combinedScore = exp.combined_score != null ? exp.combined_score.toFixed(2) : '-';
+            
             return (
               <div
                 key={exp.experiment_id}
@@ -163,10 +184,31 @@ export default function ExperimentPage() {
                 </button>
                 <div className="flex justify-between text-sm mb-1">
                   <span>ID: {exp.experiment_id.slice(0, 8)}</span>
-                  <span>평균(Recipe): {exp.overall_average.toFixed(2)}</span>
+                  <span>
+                    {combinedScore !== '-' ? (
+                      <span title="종합 점수 = 레시피 점수(70%) + 비용 점수(30%)">
+                        종합: <span className="text-green-600 font-bold">{combinedScore}</span>
+                      </span>
+                    ) : (
+                      <span>평균(Recipe): {exp.overall_average.toFixed(2)}</span>
+                    )}
+                  </span>
                 </div>
                 <div className="flex justify-between text-xs text-gray-700 font-semibold mb-1">
                   <span>실험시각: {createdAt}</span>
+                  <div className="flex items-center gap-2">
+                    {exp.cost_score != null && (
+                      <span title="비용 점수 (낮은 비용=높은 점수)" className="text-blue-600">
+                        비용점수: {costScore}
+                      </span>
+                    )}
+                    {exp.total_cost && (
+                      <span className="flex items-center text-amber-600">
+                        <DollarSign size={10} className="mr-0.5" />
+                        {totalCost} {exp.avg_cost_per_message != null && `(msg: $${exp.avg_cost_per_message.toFixed(5)})`}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="text-xs font-semibold text-primary">모델: <span className="text-foreground font-bold">{exp.model}</span> / 공급자: <span className="text-foreground font-bold">{exp.provider}</span></div>
                 <div className="text-xs mt-1">
@@ -192,6 +234,73 @@ export default function ExperimentPage() {
               <div className="mb-4">
                 <span className="text-sm font-semibold text-foreground">프롬프트: <PromptPreview text={selectedExp.prompt_str} /></span>
               </div>
+              {/* 토큰 및 비용 정보 섹션 */}
+              {selectedExp.total_cost && (
+                <div className="mb-4 p-3 bg-amber-50 rounded-md border border-amber-100">
+                  <h3 className="text-sm font-semibold text-amber-700 flex items-center mb-2">
+                    <Coins size={16} className="mr-1.5" />
+                    토큰 및 비용 정보
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                    <div className="bg-white p-2 rounded shadow-sm">
+                      <div className="text-gray-600">입력 토큰</div>
+                      <div className="font-semibold text-primary">{selectedExp.total_input_tokens?.toLocaleString() || '-'}</div>
+                    </div>
+                    <div className="bg-white p-2 rounded shadow-sm">
+                      <div className="text-gray-600">출력 토큰</div>
+                      <div className="font-semibold text-primary">{selectedExp.total_output_tokens?.toLocaleString() || '-'}</div>
+                    </div>
+                    <div className="bg-white p-2 rounded shadow-sm">
+                      <div className="text-gray-600">총 토큰</div>
+                      <div className="font-semibold text-primary">
+                        {selectedExp.total_input_tokens && selectedExp.total_output_tokens 
+                          ? (selectedExp.total_input_tokens + selectedExp.total_output_tokens).toLocaleString() 
+                          : '-'}
+                      </div>
+                    </div>
+                    <div className="bg-white p-2 rounded shadow-sm">
+                      <div className="text-gray-600">총 비용</div>
+                      <div className="font-semibold text-amber-600">
+                        ${selectedExp.total_cost?.toFixed(4) || '-'} USD
+                      </div>
+                    </div>
+                    
+                    {selectedExp.avg_cost_per_message != null && (
+                      <div className="bg-white p-2 rounded shadow-sm">
+                        <div className="text-gray-600">메시지당 비용</div>
+                        <div className="font-semibold text-amber-600">
+                          ${selectedExp.avg_cost_per_message.toFixed(5)} USD
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedExp.cost_score != null && (
+                      <div className="bg-white p-2 rounded shadow-sm">
+                        <div className="text-gray-600">비용 점수</div>
+                        <div className="font-semibold text-blue-600">
+                          {selectedExp.cost_score.toFixed(2)} 
+                          <span className="text-xs text-gray-500 ml-1" title="낮은 비용일수록 높은 점수">(min-max 정규화)</span>
+                        </div>
+                      </div>
+                    )}
+                    {selectedExp.combined_score != null && (
+                      <div className="bg-white p-2 rounded shadow-sm">
+                        <div className="text-gray-600">종합 점수</div>
+                        <div className="font-semibold text-green-600">
+                          {selectedExp.combined_score.toFixed(2)}
+                          <span className="text-xs text-gray-500 ml-1" title="레시피 점수(70%) + 비용 점수(30%)">(가중치 적용)</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {(selectedExp.cost_score != null || selectedExp.combined_score != null) && (
+                    <div className="mt-2 text-xs text-gray-500">
+                      <p>* 비용 점수: 메시지당 0.00001~0.01 USD 범위 내 min-max 정규화 적용 (낮은 비용=높은 점수)</p>
+                      <p>* 종합 점수: 레시피 품질 점수(70%)와 비용 점수(30%)의 가중합</p>
+                    </div>
+                  )}
+                </div>
+              )}
               <p className="text-sm text-muted">
                 총 소요 시간: {selectedExp.duration ?? '-'}ms
                 (메시지당: {selectedExp.timePerMessage !== undefined ? selectedExp.timePerMessage.toFixed(1) : '-'}ms)
@@ -202,6 +311,35 @@ export default function ExperimentPage() {
                     <span className="text-sm font-semibold text-primary">Conv ID: {conv.conversation_id}</span>
                     <span className="text-sm text-muted">Messages: {conv.messages.length}</span>
                   </div>
+                  {/* 토큰 및 비용 정보 표시 */}
+                  {conv.input_tokens && (
+                    <div className="mb-3 text-xs p-2 bg-gray-50 rounded flex flex-wrap gap-3">
+                      <div className="flex items-center">
+                        <span className="text-gray-500 mr-1">입력 토큰:</span>
+                        <span className="font-semibold">{conv.input_tokens.toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="text-gray-500 mr-1">출력 토큰:</span>
+                        <span className="font-semibold">{conv.output_tokens.toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center text-amber-600">
+                        <DollarSign size={12} className="mr-0.5" />
+                        <span className="font-semibold">{conv.cost?.toFixed(4) || '0.0000'} USD</span>
+                      </div>
+                      {conv.cost_score != null && (
+                        <div className="flex items-center text-blue-600">
+                          <span className="text-gray-500 mr-1">비용 점수:</span>
+                          <span className="font-semibold">{conv.cost_score.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {conv.combined_score != null && (
+                        <div className="flex items-center text-green-600">
+                          <span className="text-gray-500 mr-1">종합:</span>
+                          <span className="font-semibold">{conv.combined_score.toFixed(2)}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {/* 레시피 토글 카드 */}
                   <RecipeToggleCard recipe={conv.recipe_json} />
                   {/* 대화 내용 */}
@@ -279,9 +417,9 @@ export default function ExperimentPage() {
                     <SelectValue placeholder="공급자 선택" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="openai">ChatGPT (OpenAI)</SelectItem>
-                    <SelectItem value="gemini">Gemini</SelectItem>
-                    <SelectItem value="claude">Claude</SelectItem>
+                    <SelectItem value="openai">OpenAI</SelectItem>
+                    <SelectItem value="gemini">Google Gemini</SelectItem>
+                    <SelectItem value="claude">Anthropic Claude</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -292,10 +430,30 @@ export default function ExperimentPage() {
                     <SelectValue placeholder="모델 선택" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="gpt-4o">gpt-4o</SelectItem>
-                    <SelectItem value="gpt-3.5-turbo">gpt-3.5-turbo</SelectItem>
-                    <SelectItem value="gemini-pro">gemini-pro</SelectItem>
-                    <SelectItem value="claude-2">claude-2</SelectItem>
+                    {provider === 'openai' && (
+                      <>
+                        <SelectItem value="gpt-4.1-2025-04-14">GPT-4.1 (2.00$, 8.00$)</SelectItem>
+                        <SelectItem value="gpt-4.1-nano-2025-04-14">GPT-4.1 Nano (0.10$, 0.40$)</SelectItem>
+                        <SelectItem value="gpt-4o-mini-2024-07-18">GPT-4o Mini (0.40$, 1.60$)</SelectItem>
+                        <SelectItem value="gpt-4o">GPT-4o (5.00$, 15.00$)</SelectItem>
+                        <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo (0.50$, 1.50$)</SelectItem>
+                      </>
+                    )}
+                    {provider === 'gemini' && (
+                      <>
+                        <SelectItem value="gemini-2.5-flash-preview-04-17">Gemini 2.5 Flash (0.15$, 0.60$)</SelectItem>
+                        <SelectItem value="gemini-2.5-pro-preview-03-25">Gemini 2.5 Pro (1.25$, 10.00$)</SelectItem>
+                        <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash (0.10$, 0.40$)</SelectItem>
+                        <SelectItem value="gemini-pro">Gemini Pro (0.25$, 0.75$)</SelectItem>
+                      </>
+                    )}
+                    {provider === 'claude' && (
+                      <>
+                        <SelectItem value="claude-3-7-sonnet-20250219">Claude 3.7 Sonnet (3.00$, 15.00$)</SelectItem>
+                        <SelectItem value="claude-3-5-haiku-20241022">Claude 3.5 Haiku (0.80$, 4.00$)</SelectItem>
+                        <SelectItem value="claude-2">Claude 2 (8.00$, 24.00$)</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
