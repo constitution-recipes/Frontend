@@ -87,6 +87,14 @@ function ChatbotPageInner() {
   // 로그인한 사용자 정보
   const { user } = useAuth();
 
+  // API에 보낼 사용자 컨텍스트 정보 구성
+  const getUserContext = () => ({
+    allergies: user?.allergies || [],
+    constitution: user?.constitution || "",
+    dietary_restrictions: user?.healthGoals || [],
+    health_conditions: user?.currentHealthStatus || ""
+  });
+
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -224,7 +232,12 @@ function ChatbotPageInner() {
     // 입력 전 상태에서 메시지 전송 시 상태 변경
     if (initialState) setInitialState(false);
 
-    console.log('handleSubmit payload:', { session_id: currentSessionId, messages: updated });
+    const payload = {
+      session_id: currentSessionId,
+      messages: updated,
+      ...getUserContext()
+    };
+    console.log('handleSubmit payload:', payload);
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/chat`,
@@ -232,7 +245,7 @@ function ChatbotPageInner() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ session_id: currentSessionId, messages: updated }),
+          body: JSON.stringify(payload),
         }
       );
       console.log('handleSubmit response raw:', res);
@@ -291,8 +304,8 @@ function ChatbotPageInner() {
     if (initialState) {
       // Intro에서 기능 선택 시, 챗봇 시작 질문 표시
       const prompts = {
-        customize: '냉장고에서 사용하고 싶은 식재료는 무엇인가요? 이를 활용해서 체질에 맞고 맛있는 음식을 만들어 드릴게요.',
-        diet: '어떤 다이어트 목적이나 선호도가 있으신가요? 알려주시면 맞춤 식단을 추천해 드릴게요.',
+        customize: '냉장고에서 사용하고 싶은 식재료는 무엇인가요?',
+        diet: '어떤 다이어트 목적이나 선호도가 있으신가요?',
         difficulty: '원하시는 요리 난이도는 어느 정도인가요? (예: 쉬움, 보통, 어려움)',
         event: '어떤 이벤트나 행사를 위한 메뉴를 원하시나요? (예: 파티, 명절, 기념일 등)'
       };
@@ -309,17 +322,23 @@ function ChatbotPageInner() {
     setLoading(true);
     setGeneratedRecipe(null);
 
+    const payload = {
+      session_id: sessionId,
+      feature: featureKey,
+      messages: updatedMsgs,
+      ...getUserContext()
+    };
+    console.log('handleFeatureClick payload:', payload);
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/chat`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      }
+    );
     try {
-      console.log('handleFeatureClick payload:', { session_id: sessionId, feature: featureKey, messages: updatedMsgs });
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/chat`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: sessionId, feature: featureKey, messages: updatedMsgs }),
-        }
-      );
-      console.log('handleFeatureClick response raw:', res);
       if (!res.ok) throw new Error('API error');
       const { message: rawMessage } = await res.json();
       console.log('handleFeatureClick response json:', rawMessage);
