@@ -424,13 +424,10 @@ export default function RecommendRecipesPage() {
             
             {/* 결과 탭 */}
             <Tabs defaultValue="all" className="w-full">
-              <TabsList className="w-full max-w-md mx-auto grid grid-cols-3 mb-8">
+              <TabsList className="w-full max-w-md mx-auto grid grid-cols-2 mb-8">
                 <TabsTrigger value="all">전체 ({Array.isArray(filteredRecipes) ? filteredRecipes.length : 0})</TabsTrigger>
                 <TabsTrigger value="bodyType">
                   체질 맞춤 ({Array.isArray(filteredRecipes) ? filteredRecipes.filter(r => Array.isArray(r.suitableBodyTypes) && r.suitableBodyTypes.includes(bodyType)).length : 0})
-                </TabsTrigger>
-                <TabsTrigger value="trending">
-                  인기 레시피 ({Array.isArray(filteredRecipes) ? filteredRecipes.filter(r => r.trending).length : 0})
                 </TabsTrigger>
               </TabsList>
               
@@ -471,29 +468,6 @@ export default function RecommendRecipesPage() {
                   ) : (
                     <div className="col-span-3 text-center py-12">
                       <h3 className="text-lg text-gray-500 mb-2">체질 맞춤 레시피가 없습니다.</h3>
-                      <p className="text-gray-400 mb-4">다른 필터를 사용해보세요.</p>
-                      <Button onClick={resetFilters} variant="outline">필터 초기화</Button>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="trending">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {Array.isArray(filteredRecipes) && filteredRecipes.filter(r => r.trending).length > 0 ? (
-                    filteredRecipes
-                      .filter(r => r.trending)
-                      .map(recipe => (
-                        <RecipeCard
-                          key={recipe.id}
-                          recipe={recipe}
-                          isSaved={savedIds.includes(recipe.id)}
-                          onBookmarkChange={fetchAndSetBookmarks}
-                        />
-                      ))
-                  ) : (
-                    <div className="col-span-3 text-center py-12">
-                      <h3 className="text-lg text-gray-500 mb-2">인기 레시피가 없습니다.</h3>
                       <p className="text-gray-400 mb-4">다른 필터를 사용해보세요.</p>
                       <Button onClick={resetFilters} variant="outline">필터 초기화</Button>
                     </div>
