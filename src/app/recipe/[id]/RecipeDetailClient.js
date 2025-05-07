@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { Clock, ChefHat, Star, ArrowLeft, Heart, Share2, Users, Award, CheckCircle, Leaf, ShoppingBag, Calendar, Flame, Sparkles } from 'lucide-react';
+import { Clock, ChefHat, ArrowLeft, Heart, Users, Award, CheckCircle, Leaf, ShoppingBag, Calendar, Flame, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,9 +17,7 @@ import { fetchBookmarks, addBookmark, removeBookmark } from '@/lib/utils/bookmar
 export default function RecipeDetailClient({ id }) {
   const [recipe, setRecipe] = useState(null);
   const [isSaved, setIsSaved] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [imgError, setImgError] = useState(false);
   const [activeTab, setActiveTab] = useState("ingredients");
   const router = useRouter();
   const { isAuthenticated } = useAuth();
@@ -85,15 +83,16 @@ export default function RecipeDetailClient({ id }) {
     }
   };
 
-  // 공유 버튼 클릭 시 URL 복사
-  const handleShare = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch (e) {
-      alert('클립보드 복사에 실패했습니다.');
-    }
+  // 체질 타입에 따른 색상
+  const getBodyTypeColor = (bodyType) => {
+    const colorMap = {
+      '태양인': 'bg-amber-100 text-amber-800 border-amber-200',
+      '태음인': 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      '소양인': 'bg-rose-100 text-rose-800 border-rose-200',
+      '소음인': 'bg-blue-100 text-blue-800 border-blue-200',
+      '일반': 'bg-slate-100 text-slate-800 border-slate-200'
+    };
+    return colorMap[bodyType] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
   if (loading) {
@@ -106,7 +105,6 @@ export default function RecipeDetailClient({ id }) {
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10 rounded-3xl blur-3xl opacity-50"></div>
           <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden relative z-10">
             <CardContent className="p-0">
-              <Skeleton className="h-80 sm:h-96 w-full rounded-t-xl" />
               <div className="p-8 space-y-6">
                 <Skeleton className="h-10 w-3/4" />
                 <Skeleton className="h-4 w-full" />
@@ -125,6 +123,8 @@ export default function RecipeDetailClient({ id }) {
     );
   }
   if (!recipe) return null;
+
+  const bodyTypes = recipe.suitableBodyTypes || recipe.suitableFor?.split(', ') || [];
 
   return (
     <main className="max-w-5xl mx-auto py-12 px-4 sm:px-6 relative">
@@ -151,19 +151,10 @@ export default function RecipeDetailClient({ id }) {
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5 rounded-3xl blur-3xl opacity-70"></div>
           <Card className="border-none shadow-2xl bg-white/90 backdrop-blur-lg rounded-2xl overflow-hidden relative z-10">
             <CardContent className="p-0">
-              {/* 이미지 영역 */}
-              <div className="relative h-80 sm:h-96">
-                <img
-                  src={imgError ? 'https://placekitten.com/1200/800' : recipe.image}
-                  alt={recipe.title}
-                  className="object-cover w-full h-full"
-                  loading="lazy"
-                  onError={() => setImgError(true)}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
-                
-                {/* 버튼 영역 */}
-                <div className="absolute top-6 right-6 flex gap-3">
+              {/* 헤더 영역 - 이미지 대신 그라데이션과 정보로 구성 */}
+              <div className="relative bg-gradient-to-br from-primary/20 to-secondary/20 p-10 sm:p-12">
+                {/* 북마크 버튼 */}
+                <div className="absolute top-6 right-6">
                   <motion.button 
                     onClick={handleSave}
                     whileHover={{ scale: 1.05 }}
@@ -185,79 +176,61 @@ export default function RecipeDetailClient({ id }) {
                       )}
                     </AnimatePresence>
                   </motion.button>
-                  <motion.button 
-                    onClick={handleShare}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="p-3 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-white hover:shadow-xl transition-all duration-300 relative"
-                  >
-                    <Share2 size={22} className="text-gray-700" />
-                    <AnimatePresence>
-                      {copied && (
-                        <motion.span 
-                          initial={{ opacity: 0, y: 10, scale: 0.8 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.8, y: -5 }}
-                          transition={{ duration: 0.3 }}
-                          className="absolute -top-12 left-1/2 -translate-x-1/2 bg-primary text-white text-sm font-medium rounded-lg px-3 py-1.5 whitespace-nowrap shadow-lg"
-                        >
-                          URL 복사됨!
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </motion.button>
                 </div>
                 
-                {/* 제목 영역 (이미지 위) */}
-                <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
+                {/* 헤더 섹션 - 타이틀과 메타데이터 */}
+                <div className="max-w-3xl mx-auto">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2, duration: 0.5 }}
                     className="space-y-4"
                   >
+                    <div className="inline-flex p-3 rounded-full bg-white/30 backdrop-blur-sm shadow-sm mb-3">
+                      <ChefHat size={20} className="text-primary mr-3" />
+                      <span className="font-medium text-primary">체질 맞춤 레시피</span>
+                    </div>
+                    
                     <div className="flex gap-2 flex-wrap">
-                      {recipe.tags.map((tag, idx) => (
+                      {recipe.tags && recipe.tags.map((tag, idx) => (
                         <Badge 
                           key={idx} 
-                          className="bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white border-white/10 py-1 px-3 text-sm font-medium tracking-wide shadow-sm"
+                          className="bg-white/30 hover:bg-white/40 backdrop-blur-sm text-gray-800 border-white/10 py-1 px-3 text-sm font-medium tracking-wide shadow-sm"
                         >
                           {tag}
                         </Badge>
                       ))}
                     </div>
-                    <h1 className="text-3xl sm:text-4xl font-bold mb-2 tracking-tight text-shadow-lg leading-tight">
+                    <h1 className="text-3xl sm:text-4xl font-bold mb-2 tracking-tight leading-tight">
                       {recipe.title}
                     </h1>
-                    <div className="flex items-center flex-wrap gap-4 text-white/90">
-                      <div className="flex items-center">
-                        <div className="flex items-center justify-center w-9 h-9 rounded-full bg-yellow-400/20 backdrop-blur-sm mr-3">
-                          <Star size={16} className="text-yellow-400" fill="currentColor" />
+                    <p className="text-muted-foreground text-lg">
+                      {recipe.description}
+                    </p>
+                    <div className="w-32 h-2 bg-gradient-to-r from-primary/40 to-primary/5 rounded-full mt-6"></div>
+                    <div className="grid grid-cols-3 gap-3 mt-6">
+                      <div className="bg-white/30 backdrop-blur-sm p-4 rounded-xl shadow-sm">
+                        <div className="flex items-center mb-2">
+                          <Clock size={18} className="text-primary mr-2" />
+                          <span className="font-medium">조리 시간</span>
                         </div>
-                        <div>
-                          <div className="text-sm font-semibold text-white">{recipe.rating.toFixed(1)}</div>
-                          <div className="text-xs text-white/70">평점</div>
-                        </div>
+                        <p className="text-2xl font-semibold">{recipe.cookTime}</p>
                       </div>
                       
-                      <div className="flex items-center">
-                        <div className="flex items-center justify-center w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm mr-3">
-                          <Clock size={16} className="text-white" />
+                      <div className="bg-white/30 backdrop-blur-sm p-4 rounded-xl shadow-sm">
+                        <div className="flex items-center mb-2">
+                          <ChefHat size={18} className="text-primary mr-2" />
+                          <span className="font-medium">난이도</span>
                         </div>
-                        <div>
-                          <div className="text-sm font-semibold text-white">{recipe.cookTime}</div>
-                          <div className="text-xs text-white/70">조리 시간</div>
-                        </div>
+                        <p className="text-2xl font-semibold">{recipe.difficulty}</p>
                       </div>
                       
-                      <div className="flex items-center">
-                        <div className="flex items-center justify-center w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm mr-3">
-                          <ChefHat size={16} className="text-white" />
+                      <div className="bg-white/30 backdrop-blur-sm p-4 rounded-xl shadow-sm">
+                        <div className="flex items-center mb-2">
+                          <Users size={18} className="text-primary mr-2" />
+                          <span className="font-medium">인분</span>
                         </div>
-                        <div>
-                          <div className="text-sm font-semibold text-white">{recipe.difficulty}</div>
-                          <div className="text-xs text-white/70">난이도</div>
-                        </div>
+                        <p className="text-2xl font-semibold">{recipe.servings || "1인분"}</p>
                       </div>
                     </div>
                   </motion.div>
@@ -266,71 +239,6 @@ export default function RecipeDetailClient({ id }) {
               
               {/* 내용 영역 */}
               <div className="p-8 sm:p-10">
-                <p className="text-muted-foreground text-lg mb-10 leading-relaxed">{recipe.description}</p>
-                
-                {/* 정보 카드 */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-5 mb-12">
-                  <motion.div
-                    whileHover={{ y: -5, boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}
-                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                  >
-                    <Card className="border-none shadow-md bg-gradient-to-br from-primary/5 to-primary/10 h-full">
-                      <CardContent className="p-5 flex flex-col items-center justify-center h-full">
-                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-                          <Clock size={22} className="text-primary" />
-                        </div>
-                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">조리 시간</span>
-                        <span className="font-semibold text-lg mt-1">{recipe.cookTime}</span>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                  
-                  <motion.div
-                    whileHover={{ y: -5, boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}
-                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                  >
-                    <Card className="border-none shadow-md bg-gradient-to-br from-primary/5 to-primary/10 h-full">
-                      <CardContent className="p-5 flex flex-col items-center justify-center h-full">
-                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-                          <Users size={22} className="text-primary" />
-                        </div>
-                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">인분</span>
-                        <span className="font-semibold text-lg mt-1">{recipe.servings}</span>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                  
-                  <motion.div
-                    whileHover={{ y: -5, boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}
-                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                  >
-                    <Card className="border-none shadow-md bg-gradient-to-br from-yellow-500/5 to-yellow-500/10 h-full">
-                      <CardContent className="p-5 flex flex-col items-center justify-center h-full">
-                        <div className="w-12 h-12 rounded-full bg-yellow-500/10 flex items-center justify-center mb-3">
-                          <Star size={22} className="text-yellow-500" />
-                        </div>
-                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">평점</span>
-                        <span className="font-semibold text-lg mt-1">{recipe.rating.toFixed(1)}</span>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                  
-                  <motion.div
-                    whileHover={{ y: -5, boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}
-                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                  >
-                    <Card className="border-none shadow-md bg-gradient-to-br from-primary/5 to-primary/10 h-full">
-                      <CardContent className="p-5 flex flex-col items-center justify-center h-full">
-                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-                          <ChefHat size={22} className="text-primary" />
-                        </div>
-                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">난이도</span>
-                        <span className="font-semibold text-lg mt-1">{recipe.difficulty}</span>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                </div>
-                
                 {/* 체질 맞춤 정보 */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -351,9 +259,16 @@ export default function RecipeDetailClient({ id }) {
                         </div>
                       </div>
                       
-                      <p className="text-foreground text-lg mb-6 leading-relaxed border-l-4 border-primary/30 pl-4 py-2 bg-primary/5 rounded-sm">
-                        {recipe.suitableFor}
-                      </p>
+                      <div className="flex flex-wrap gap-2 mb-6">
+                        {bodyTypes.map((type, index) => (
+                          <div 
+                            key={index} 
+                            className={`px-4 py-2 rounded-full border ${getBodyTypeColor(type)}`}
+                          >
+                            <span className="font-medium">{type}</span>
+                          </div>
+                        ))}
+                      </div>
                       
                       <div className="flex items-start p-5 bg-white rounded-2xl shadow-sm border border-primary/10">
                         <div className="mt-1 mr-4">
