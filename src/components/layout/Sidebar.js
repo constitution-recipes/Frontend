@@ -167,7 +167,7 @@ export default function Sidebar() {
       </div>
       {/* 하단 정보 영역 */}
       <div className="p-4 text-center text-xs text-muted-foreground border-t border-border/40">
-        <p>© 2023 ChiDiet</p>
+        <p>© 2025 ChiDiet</p>
         <p className="mt-1">한의학 기반 맞춤형 식단 제안 서비스</p>
       </div>
     </div>

@@ -175,7 +175,7 @@ export function LoginForm() {
           </Button>
         </motion.div>
 
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-sm text-muted-foreground mt-8">
           아직 계정이 없으신가요?{' '}
           <Link
             href="/auth/signup"

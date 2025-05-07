@@ -423,13 +423,8 @@ export function SignupForm() {
             </div>
           </>
         )}
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-muted"></div>
-          </div>
-        </div>
 
-        <div className="text-center text-sm text-muted-foreground mt-4">
+        <div className="text-center text-sm text-muted-foreground mt-8">
           이미 계정이 있으신가요?{' '}
           <Link href="/auth/login" className="text-primary hover:underline font-semibold">
             로그인
