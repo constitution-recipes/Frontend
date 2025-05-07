@@ -31,11 +31,10 @@ export default function RecommendRecipesPage() {
   
   // 필터 상태
   const [filters, setFilters] = useState({
-    cookingTime: [0, 60],
-    mealType: [],
-    ingredients: [],
+    category: '전체',
     difficulty: [],
-    bodyTypeMatch: true
+    bodyType: '',
+    ingredients: [],
   });
 
   const [activeFilter, setActiveFilter] = useState(false);
@@ -62,14 +61,25 @@ export default function RecommendRecipesPage() {
 
   useEffect(() => {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+    console.log('API URL:', API_URL); // API URL 로깅
     // 백엔드에서 모든 레시피 조회
     fetch(`${API_URL}/api/v1/recipes/get_all_recipes`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
         setRecipes(data);
         setFilteredRecipes(data);
       })
-      .catch(err => console.error('레시피 불러오기 실패:', err));
+      .catch(err => {
+        console.error('레시피 불러오기 실패:', err);
+        console.error('상세 에러:', err.message);
+        setRecipes([]);
+        setFilteredRecipes([]);
+      });
     // 체질 정보 로드
     setBodyType('목양체질');
   }, []);
@@ -78,62 +88,58 @@ export default function RecommendRecipesPage() {
     applyFilters();
   }, [searchQuery, filters, recipes]);
 
+  useEffect(() => {
+    if (recipes && recipes.length > 0) {
+      recipes.forEach(r => {
+        console.log(`[${r.title}] ingredients:`, r.ingredients);
+      });
+    }
+  }, [recipes]);
+
   const applyFilters = () => {
-    // recipes가 배열이 아닐 경우 빈 배열로 초기화
     const base = Array.isArray(recipes) ? recipes : [];
     let results = [...base];
     const activeFiltersList = [];
-    
+
     // 검색어 필터링
     if (searchQuery) {
-      results = results.filter(recipe => 
-        recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      results = results.filter(recipe =>
+        recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         recipe.description.toLowerCase().includes(searchQuery.toLowerCase())
       );
       activeFiltersList.push(`검색: ${searchQuery}`);
     }
-    
-    // 조리 시간 필터링
-    if (filters.cookingTime[1] < 60) {
-      results = results.filter(recipe => 
-        recipe.cookTime >= filters.cookingTime[0] && 
-        recipe.cookTime <= filters.cookingTime[1]
-      );
-      activeFiltersList.push(`조리시간: ${filters.cookingTime[0]}~${filters.cookingTime[1]}분`);
+
+    // 카테고리 필터링
+    if (filters.category && filters.category !== '전체') {
+      results = results.filter(recipe => recipe.category === filters.category);
+      activeFiltersList.push(`카테고리: ${filters.category}`);
     }
-    
-    // 식사 유형 필터링
-    if (filters.mealType.length > 0) {
-      results = results.filter(recipe => 
-        filters.mealType.includes(recipe.mealType)
-      );
-      activeFiltersList.push(`식사유형: ${filters.mealType.join(', ')}`);
+
+    // 난이도 필터링
+    if (filters.difficulty.length > 0) {
+      results = results.filter(recipe => filters.difficulty.includes(recipe.difficulty));
+      activeFiltersList.push(`난이도: ${filters.difficulty.join(', ')}`);
     }
-    
-    // 재료 필터링
+
+    // 체질 필터링
+    if (filters.bodyType) {
+      results = results.filter(recipe => Array.isArray(recipe.suitableBodyTypes) && recipe.suitableBodyTypes.includes(filters.bodyType));
+      activeFiltersList.push(`체질: ${filters.bodyType}`);
+    }
+
+    // 재료(주요 재료) 필터링
     if (filters.ingredients.length > 0) {
-      results = results.filter(recipe => 
-        filters.ingredients.some(ing => recipe.ingredients.some(i => i.name.includes(ing)))
+      results = results.filter(recipe =>
+        filters.ingredients.some(ing =>
+          Array.isArray(recipe.keyIngredients)
+            ? recipe.keyIngredients.includes(ing)
+            : false
+        )
       );
       activeFiltersList.push(`재료: ${filters.ingredients.join(', ')}`);
     }
-    
-    // 난이도 필터링
-    if (filters.difficulty.length > 0) {
-      results = results.filter(recipe => 
-        filters.difficulty.includes(recipe.difficulty)
-      );
-      activeFiltersList.push(`난이도: ${filters.difficulty.join(', ')}`);
-    }
-    
-    // 체질 맞춤 필터링
-    if (filters.bodyTypeMatch && bodyType) {
-      results = results.filter(recipe =>
-        Array.isArray(recipe.suitableBodyTypes) && recipe.suitableBodyTypes.includes(bodyType)
-      );
-      activeFiltersList.push(`체질맞춤: ${bodyType}`);
-    }
-    
+
     setFilteredRecipes(results);
     setActiveFilters(activeFiltersList);
   };
@@ -141,27 +147,24 @@ export default function RecommendRecipesPage() {
   const handleRemoveFilter = (filterToRemove) => {
     if (filterToRemove.startsWith('검색:')) {
       setSearchQuery('');
-    } else if (filterToRemove.startsWith('조리시간:')) {
-      setFilters({...filters, cookingTime: [0, 60]});
-    } else if (filterToRemove.startsWith('식사유형:')) {
-      setFilters({...filters, mealType: []});
+    } else if (filterToRemove.startsWith('카테고리:')) {
+      setFilters({ ...filters, category: '전체' });
     } else if (filterToRemove.startsWith('재료:')) {
-      setFilters({...filters, ingredients: []});
+      setFilters({ ...filters, ingredients: [] });
     } else if (filterToRemove.startsWith('난이도:')) {
-      setFilters({...filters, difficulty: []});
-    } else if (filterToRemove.startsWith('체질맞춤:')) {
-      setFilters({...filters, bodyTypeMatch: false});
+      setFilters({ ...filters, difficulty: [] });
+    } else if (filterToRemove.startsWith('체질:')) {
+      setFilters({ ...filters, bodyType: '' });
     }
   };
 
   const resetFilters = () => {
     setSearchQuery('');
     setFilters({
-      cookingTime: [0, 60],
-      mealType: [],
-      ingredients: [],
+      category: '전체',
       difficulty: [],
-      bodyTypeMatch: true
+      bodyType: '',
+      ingredients: [],
     });
   };
 
@@ -308,7 +311,6 @@ export default function RecommendRecipesPage() {
                 <Tabs defaultValue="category">
                   <TabsList className="mb-4">
                     <TabsTrigger value="category">카테고리</TabsTrigger>
-                    <TabsTrigger value="time">조리시간</TabsTrigger>
                     <TabsTrigger value="difficulty">난이도</TabsTrigger>
                     <TabsTrigger value="bodyType">체질</TabsTrigger>
                     <TabsTrigger value="ingredients">재료</TabsTrigger>
@@ -319,10 +321,10 @@ export default function RecommendRecipesPage() {
                       {['전체', '한식', '중식', '일식', '양식', '디저트', '음료'].map((category) => (
                         <button
                           key={category}
-                          onClick={() => handleFilterChange('category', category)}
+                          onClick={() => setFilters(f => ({ ...f, category }))}
                           className={`px-4 py-2 rounded-full text-sm transition-colors ${
-                            filters.category === category 
-                              ? 'bg-primary text-white' 
+                            filters.category === category
+                              ? 'bg-primary text-white'
                               : 'bg-muted hover:bg-muted/80 text-foreground/80'
                           }`}
                         >
@@ -332,33 +334,22 @@ export default function RecommendRecipesPage() {
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="time">
-                    <div className="flex flex-wrap gap-2">
-                      {['전체', '15분 이내', '30분 이내', '1시간 이내', '1시간 이상'].map((time) => (
-                        <button
-                          key={time}
-                          onClick={() => handleFilterChange('time', time)}
-                          className={`px-4 py-2 rounded-full text-sm transition-colors ${
-                            filters.time === time 
-                              ? 'bg-primary text-white' 
-                              : 'bg-muted hover:bg-muted/80 text-foreground/80'
-                          }`}
-                        >
-                          {time}
-                        </button>
-                      ))}
-                    </div>
-                  </TabsContent>
-
                   <TabsContent value="difficulty">
                     <div className="flex flex-wrap gap-2">
-                      {['전체', '쉬움', '중간', '어려움'].map((difficulty) => (
+                      {['쉬움', '중간', '어려움'].map((difficulty) => (
                         <button
                           key={difficulty}
-                          onClick={() => handleFilterChange('difficulty', difficulty)}
+                          onClick={() => {
+                            setFilters(f => ({
+                              ...f,
+                              difficulty: f.difficulty.includes(difficulty)
+                                ? f.difficulty.filter(d => d !== difficulty)
+                                : [...f.difficulty, difficulty],
+                            }));
+                          }}
                           className={`px-4 py-2 rounded-full text-sm transition-colors ${
-                            filters.difficulty === difficulty 
-                              ? 'bg-primary text-white' 
+                            filters.difficulty.includes(difficulty)
+                              ? 'bg-primary text-white'
                               : 'bg-muted hover:bg-muted/80 text-foreground/80'
                           }`}
                         >
@@ -373,10 +364,10 @@ export default function RecommendRecipesPage() {
                       {['목양체질','목음체질','토양체질','토음체질','금양체질','금음체질','수양체질','수음체질'].map((type) => (
                         <button
                           key={type}
-                          onClick={() => handleFilterChange('bodyType', type)}
+                          onClick={() => setFilters(f => ({ ...f, bodyType: f.bodyType === type ? '' : type }))}
                           className={`px-4 py-2 rounded-full text-sm transition-colors ${
-                            filters.bodyType === type 
-                              ? 'bg-primary text-white' 
+                            filters.bodyType === type
+                              ? 'bg-primary text-white'
                               : 'bg-muted hover:bg-muted/80 text-foreground/80'
                           }`}
                         >
@@ -394,7 +385,14 @@ export default function RecommendRecipesPage() {
                             type="checkbox"
                             id={`ingredient-${ingredient}`}
                             checked={filters.ingredients.includes(ingredient)}
-                            onChange={() => handleCheckboxChange('ingredients', ingredient)}
+                            onChange={() => {
+                              setFilters(f => ({
+                                ...f,
+                                ingredients: f.ingredients.includes(ingredient)
+                                  ? f.ingredients.filter(i => i !== ingredient)
+                                  : [...f.ingredients, ingredient],
+                              }));
+                            }}
                             className="rounded border-border/40 text-primary focus:ring-primary/30"
                           />
                           <Label htmlFor={`ingredient-${ingredient}`}>{ingredient}</Label>
