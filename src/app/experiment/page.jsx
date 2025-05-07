@@ -76,7 +76,7 @@ export default function ExperimentPage() {
       const timePerMessage = data.results.length ? (duration / data.results.length) : 0;
       // 실험 데이터에 시간 필드 추가
       data.duration = duration;
-      data.timePerMessage = timePerMessage;
+      data.time_per_message = timePerMessage;
       const newExp = data;
       // 실험 리스트에 최상단 추가
       setExperiments(prev => [newExp, ...prev]);
@@ -302,8 +302,9 @@ export default function ExperimentPage() {
                 </div>
               )}
               <p className="text-sm text-muted">
-                총 소요 시간: {selectedExp.duration ?? '-'}ms
-                (메시지당: {selectedExp.timePerMessage !== undefined ? selectedExp.timePerMessage.toFixed(1) : '-'}ms)
+                총 소요 시간: {selectedExp.duration ?? '-'}ms {selectedExp.duration != null ? `(${(selectedExp.duration/1000).toFixed(2)}s)` : ''}
+                {' '}
+                (메시지당: {selectedExp.time_per_message != null ? selectedExp.time_per_message.toFixed(1) : '-'}ms {selectedExp.time_per_message != null ? `(${(selectedExp.time_per_message/1000).toFixed(2)}s)` : ''})
               </p>
               {selectedExp.results.map((conv, idx) => (
                 <div key={conv.conversation_id} className="p-4 bg-card rounded border border-border mb-6 shadow-sm">
