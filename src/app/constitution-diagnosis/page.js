@@ -406,7 +406,7 @@ export default function ConstitutionPage() {
             </div>
           </div>
           
-          <div className="fixed bottom-0 left-0 right-0 md:left-72 bg-white/95 backdrop-blur-sm border-t border-border/40 py-4 px-4 z-40 shadow-[0_-2px_10px_0_rgba(0,0,0,0.05)]">
+          <div className="fixed bottom-0 left-0 right-0 md:left-0 bg-white/95 backdrop-blur-sm border-t border-border/40 py-4 px-4 z-40 shadow-[0_-2px_10px_0_rgba(0,0,0,0.05)]">
             <motion.form
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -421,7 +421,7 @@ export default function ConstitutionPage() {
                     value={input}
                     onChange={handleInputChange}
                     placeholder="질문에 대한 답변을 입력하세요..."
-                    className="pl-5 pr-10 py-4 min-h-[56px] max-h-[150px] rounded-3xl bg-muted border-none shadow-sm text-base focus:ring-2 focus:ring-primary/30 resize-none overflow-y-auto w-full"
+                    className="pl-5 pr-10 py-4 min-h-[56px] max-h-[150px] rounded-3xl bg-muted border-none shadow-sm text-base focus:ring-2 focus:ring-primary/30 resize-none overflow-y-auto w-full flex-1"
                     disabled={loading || showRecipeButton}
                     autoComplete="off"
                     rows={1}

@@ -118,17 +118,9 @@ export function LoginForm() {
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password" className="text-sm font-medium">
-              비밀번호
-            </Label>
-            <Link
-              href="/auth/reset-password"
-              className="text-xs text-muted-foreground hover:text-primary transition-colors"
-            >
-              비밀번호를 잊으셨나요?
-            </Link>
-          </div>
+          <Label htmlFor="password" className="text-sm font-medium">
+            비밀번호
+          </Label>
           <div className="relative">
             <div className="absolute left-3 top-0 bottom-0 flex items-center pointer-events-none text-muted-foreground">
               <Lock className="h-4 w-4" />
@@ -182,50 +174,6 @@ export function LoginForm() {
             )}
           </Button>
         </motion.div>
-
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-muted"></div>
-          </div>
-          <div className="relative flex justify-center text-xs">
-            <span className="px-2 bg-white text-muted-foreground">또는</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full flex items-center justify-center py-5 border-border/60 hover:bg-muted hover:border-primary/30 transition-all"
-            disabled={isLoading}
-            onClick={() => {
-              alert('소셜 로그인은 아직 지원되지 않습니다.');
-            }}
-          >
-            <img
-              src="/icons/google.svg"
-              alt="Google 로고"
-              className="w-5 h-5 mr-2"
-            />
-            <span className="text-sm">Google</span>
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full flex items-center justify-center py-5 border-border/60 hover:bg-muted hover:border-primary/30 transition-all"
-            disabled={isLoading}
-            onClick={() => {
-              alert('소셜 로그인은 아직 지원되지 않습니다.');
-            }}
-          >
-            <img
-              src="/icons/kakao.svg"
-              alt="Kakao 로고"
-              className="w-5 h-5 mr-2"
-            />
-            <span className="text-sm">Kakao</span>
-          </Button>
-        </div>
 
         <p className="text-center text-sm text-muted-foreground">
           아직 계정이 없으신가요?{' '}
