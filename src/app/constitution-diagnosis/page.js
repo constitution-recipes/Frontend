@@ -29,6 +29,7 @@ export default function ConstitutionPage() {
   const [showRecipeButton, setShowRecipeButton] = useState(false);
   const [constitution, setConstitution] = useState(null);
   const messagesEndRef = useRef(null);
+  const [isInitial, setIsInitial] = useState(true);
 
   useEffect(() => {
     if (authLoading || !token || initialFetchRef.current) return;
@@ -76,6 +77,9 @@ export default function ConstitutionPage() {
         });
       } finally {
         setLoading(false);
+        if (messages.length > 0) {
+          setIsInitial(false);
+        }
       }
     };
     fetchInitial();
@@ -266,7 +270,7 @@ export default function ConstitutionPage() {
                 </div>
               </div>
               
-              {!messages.length && (
+              {isInitial && (
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -277,7 +281,7 @@ export default function ConstitutionPage() {
                   </p>
                   
                   {/* 진행 상태 표시 */}
-                  <div className="mt-4 mb-6">
+                  {/* <div className="mt-4 mb-6">
                     <div className="relative h-2 w-full bg-muted rounded-full overflow-hidden">
                       <motion.div 
                         className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-400 to-primary"
@@ -290,7 +294,7 @@ export default function ConstitutionPage() {
                       <span>질문 {qaList.length}/8</span>
                       <span>{progression.toFixed(0)}% 완료</span>
                     </div>
-                  </div>
+                  </div> */}
                 </motion.div>
               )}
             </CardContent>
