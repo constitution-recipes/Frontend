@@ -62,14 +62,25 @@ export default function RecommendRecipesPage() {
 
   useEffect(() => {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+    console.log('API URL:', API_URL); // API URL 로깅
     // 백엔드에서 모든 레시피 조회
     fetch(`${API_URL}/api/v1/recipes/get_all_recipes`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
         setRecipes(data);
         setFilteredRecipes(data);
       })
-      .catch(err => console.error('레시피 불러오기 실패:', err));
+      .catch(err => {
+        console.error('레시피 불러오기 실패:', err);
+        console.error('상세 에러:', err.message);
+        setRecipes([]);
+        setFilteredRecipes([]);
+      });
     // 체질 정보 로드
     setBodyType('목양체질');
   }, []);
