@@ -624,7 +624,7 @@ function ChatbotPageInner() {
                           </div>
                           {message.role === 'user' && (
                             <div className="w-8 h-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-sm ml-2 flex-shrink-0">
-                              {userProfile.name[0]}
+                              {(user && user.name && user.name[0]) ? user.name[0] : '?'}
                             </div>
                           )}
                         </motion.div>
