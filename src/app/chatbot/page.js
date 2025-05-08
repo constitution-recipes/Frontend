@@ -11,7 +11,6 @@ import { ChatRecipeCard } from '@/components/recipe/ChatRecipeCard';
 import { 
   Send, 
   ArrowLeft, 
-  Save, 
   ChefHat, 
   Loader2, 
   Settings, 
@@ -277,25 +276,6 @@ function ChatbotPageInner() {
       ]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // 레시피 저장
-  const saveRecipe = async () => {
-    if (!generatedRecipe) return;
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/recipes/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(generatedRecipe),
-      });
-      if (!res.ok) throw new Error('레시피 저장 실패');
-      const saved = await res.json();
-      setGeneratedRecipe(prev => ({ ...prev, id: saved.id }));
-      alert('레시피가 저장되었습니다!');
-    } catch (error) {
-      console.error('saveRecipe error:', error);
-      alert('레시피 저장 중 오류가 발생했습니다.');
     }
   };
 
@@ -576,14 +556,6 @@ function ChatbotPageInner() {
                               <ChatRecipeCard recipe={recipeObj} />
                               {/* 저장/자세히 보기 버튼 */}
                               <div className="flex justify-between mt-4 gap-3">
-                                <Button
-                                  variant="outline"
-                                  className="text-primary border-primary/30 hover:bg-primary/10 hover:text-primary flex-1"
-                                  onClick={saveRecipe}
-                                >
-                                  <Save size={16} className="mr-1" />
-                                  저장
-                                </Button>
                                 {recipeObj.id ? (
                                   <Link href={`/recipe/${recipeObj.id}`} className="flex-1">
                                     <Button className="bg-primary hover:bg-primary/90 w-full">자세히 보기</Button>
@@ -645,14 +617,6 @@ function ChatbotPageInner() {
                         <div className="max-w-md w-full bg-card shadow-soft rounded-2xl rounded-tl-none p-5 border border-border/40">
                           <ChatRecipeCard recipe={generatedRecipe} />
                           <div className="flex justify-between mt-4 gap-3">
-                            <Button 
-                              variant="outline" 
-                              className="text-primary border-primary/30 hover:bg-primary/10 hover:text-primary flex-1"
-                              onClick={saveRecipe}
-                            >
-                              <Save size={16} className="mr-1" />
-                              저장
-                            </Button>
                             {generatedRecipe.id ? (
                             <Link href={`/recipe/${generatedRecipe.id}`} className="flex-1">
                               <Button className="bg-primary hover:bg-primary/90 w-full">자세히 보기</Button>
