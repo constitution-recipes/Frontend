@@ -46,10 +46,10 @@ export default function SidebarLayout({ children }) {
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
         className="fixed bottom-24 right-6 z-50 py-2.5 px-4 rounded-full bg-primary text-white shadow-lg hover:bg-primary/90 transition-all focus:outline-none focus:ring-2 focus:ring-primary/50 md:hidden flex items-center gap-2 group"
-        aria-label={sidebarOpen ? "닫기" : "채팅 기록 및 옵션 열기"}
+        aria-label={sidebarOpen ? "닫기" : "채팅 기록 열기"}
       >
         <Menu className="h-5 w-5" />
-        <span className="font-medium text-sm">채팅 기록 및 옵션</span>
+        <span className="font-medium text-sm">채팅 기록</span>
       </button>
 
       {/* 데스크탑 및 모바일에서 사이드바를 고정 표시 */}

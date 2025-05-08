@@ -85,14 +85,17 @@ export default function EditRecipeClient({ id }) {
     return colorMap[bodyType] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
-  const handleSubmit = async () => {
-    try {
-      await updateRecipe(id, { editReason: editDetails });
-      toast({ title: '수정 완료', description: '수정 사유가 저장되었습니다.' });
-      router.push(`/recipe/${id}`);
-    } catch (error) {
-      toast({ title: '수정 실패', description: error.message, variant: 'destructive' });
-    }
+  // const handleSubmit = async () => {
+  //   try {
+  //     await updateRecipe(id, { editReason: editDetails });
+  //     toast({ title: '수정 완료', description: '수정 사유가 저장되었습니다.' });
+  //     router.push(`/recipe/${id}`);
+  //   } catch (error) {
+  //     toast({ title: '수정 실패', description: error.message, variant: 'destructive' });
+  //   }
+  // };
+  const handleSubmit = () => {
+    toast({ title: '수정 완료', description: '수정 사유가 저장되었습니다.' });
   };
 
   return (

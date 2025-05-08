@@ -23,7 +23,7 @@ export default function RecommendRecipesPage() {
   const [recipes, setRecipes] = useState([]);
   const [filteredRecipes, setFilteredRecipes] = useState([]);
   const [savedIds, setSavedIds] = useState([]);
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const accessToken = typeof window !== 'undefined' ? require('@/lib/services/authService').authService.getToken() : null;
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState([]);
@@ -80,9 +80,14 @@ export default function RecommendRecipesPage() {
         setRecipes([]);
         setFilteredRecipes([]);
       });
-    // 체질 정보 로드
-    setBodyType('목양체질');
+    // 체질 정보 로드는 사용자 정보로 대체
   }, []);
+
+  useEffect(() => {
+    if (user?.constitution) {
+      setBodyType(user.constitution+'체질');
+    }
+  }, [user]);
 
   useEffect(() => {
     applyFilters();
@@ -128,10 +133,10 @@ export default function RecommendRecipesPage() {
       activeFiltersList.push(`체질: ${filters.bodyType}`);
     }
 
-    // 재료(주요 재료) 필터링
+    // 재료(주요 재료) 필터링 (AND 조건)
     if (filters.ingredients.length > 0) {
       results = results.filter(recipe =>
-        filters.ingredients.some(ing =>
+        filters.ingredients.every(ing =>
           Array.isArray(recipe.keyIngredients)
             ? recipe.keyIngredients.includes(ing)
             : false
@@ -339,14 +344,7 @@ export default function RecommendRecipesPage() {
                       {['쉬움', '중간', '어려움'].map((difficulty) => (
                         <button
                           key={difficulty}
-                          onClick={() => {
-                            setFilters(f => ({
-                              ...f,
-                              difficulty: f.difficulty.includes(difficulty)
-                                ? f.difficulty.filter(d => d !== difficulty)
-                                : [...f.difficulty, difficulty],
-                            }));
-                          }}
+                          onClick={() => setFilters(f => ({ ...f, difficulty: [difficulty] }))}
                           className={`px-4 py-2 rounded-full text-sm transition-colors ${
                             filters.difficulty.includes(difficulty)
                               ? 'bg-primary text-white'
@@ -453,26 +451,33 @@ export default function RecommendRecipesPage() {
               </TabsContent>
               
               <TabsContent value="bodyType">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {Array.isArray(filteredRecipes) && filteredRecipes.filter(r => Array.isArray(r.suitableBodyTypes) && r.suitableBodyTypes.includes(bodyType)).length > 0 ? (
-                    filteredRecipes
-                      .filter(r => Array.isArray(r.suitableBodyTypes) && r.suitableBodyTypes.includes(bodyType))
-                      .map(recipe => (
-                        <RecipeCard
-                          key={recipe.id}
-                          recipe={recipe}
-                          isSaved={savedIds.includes(recipe.id)}
-                          onBookmarkChange={fetchAndSetBookmarks}
-                        />
-                      ))
-                  ) : (
-                    <div className="col-span-3 text-center py-12">
-                      <h3 className="text-lg text-gray-500 mb-2">체질 맞춤 레시피가 없습니다.</h3>
-                      <p className="text-gray-400 mb-4">다른 필터를 사용해보세요.</p>
-                      <Button onClick={resetFilters} variant="outline">필터 초기화</Button>
-                    </div>
-                  )}
-                </div>
+                {!bodyType ? (
+                  <div className="col-span-3 text-center py-12">
+                    <h3 className="text-lg text-gray-500 mb-2">체질 정보가 없어 체질 맞춤 레시피를 볼 수 없습니다.</h3>
+                    <p className="text-gray-400 mb-4">프로필에서 체질 진단을 먼저 완료해주세요.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredRecipes.filter(r => Array.isArray(r.suitableBodyTypes) && r.suitableBodyTypes.includes(bodyType)).length > 0 ? (
+                      filteredRecipes
+                        .filter(r => Array.isArray(r.suitableBodyTypes) && r.suitableBodyTypes.includes(bodyType))
+                        .map(recipe => (
+                          <RecipeCard
+                            key={recipe.id}
+                            recipe={recipe}
+                            isSaved={savedIds.includes(recipe.id)}
+                            onBookmarkChange={fetchAndSetBookmarks}
+                          />
+                        ))
+                    ) : (
+                      <div className="col-span-3 text-center py-12">
+                        <h3 className="text-lg text-gray-500 mb-2">체질 맞춤 레시피가 없습니다.</h3>
+                        <p className="text-gray-400 mb-4">다른 필터를 사용해보세요.</p>
+                        <Button onClick={resetFilters} variant="outline">필터 초기화</Button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </motion.div>
