@@ -120,28 +120,31 @@ function ChatbotPageInner() {
     }
   }, []);
 
-  // sessionId가 변경될 때마다 백엔드에서 메시지 로드
+  // sessionId 상태 변경에 따른 초기 메시지 로드 로직 (초기 로드 시에만 실행)
   useEffect(() => {
-    console.log(`[DEBUG][ChatPage] sessionId changed to: ${sessionId}`);
-    if (sessionId) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat/messages/${sessionId}`)
-        .then(res => res.json())
-        .then(data => {
-          const msgs = data.map(m => ({ role: m.role, content: m.content }));
-          console.log(`[DEBUG][ChatPage] Loaded ${msgs.length} messages for session ${sessionId}`);
-          setMessages(msgs);
-          setInitialState(msgs.length === 0);
-          setGeneratedRecipe(null);
-        })
-        .catch(err => console.error('메시지 조회 오류:', err));
-    } else {
+    console.log(`[DEBUG][ChatPage] sessionId changed to: ${sessionId}, initialState: ${initialState}`);
+    if (!sessionId) {
       // 새로운 채팅 시작 시 초기 상태
       console.log('[DEBUG][ChatPage] No sessionId, resetting messages');
       setMessages([]);
-      setInitialState(true);
       setGeneratedRecipe(null);
+      return;
     }
-  }, [sessionId]);
+    if (!initialState) {
+      // 이미 챗팅을 시작한 상태라면 초기 메시지 로드를 건너뜁니다.
+      return;
+    }
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/chat/messages/${sessionId}`)
+      .then(res => res.json())
+      .then(data => {
+        const msgs = data.map(m => ({ role: m.role, content: m.content }));
+        console.log(`[DEBUG][ChatPage] Loaded ${msgs.length} messages for session ${sessionId}`);
+        setMessages(msgs);
+        setInitialState(msgs.length === 0);
+        setGeneratedRecipe(null);
+      })
+      .catch(err => console.error('메시지 조회 오류:', err));
+  }, [sessionId, initialState]);
 
   // 응답 처리: JSON 레시피 데이터일 경우 카드 렌더링, 아니면 일반 대화
   function processResponse(raw, currentMessages) {
